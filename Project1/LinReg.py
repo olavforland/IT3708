@@ -1,14 +1,28 @@
 import numpy as np
+import functools
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 
+from time import time
 
 class LinReg():
     def __init__(self, X, y):
         self.X, self.y = X, y
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2, random_state=42)
 
+        self.time_train_test_split = 0
+        self.time_get_columns = 0
+        self.time_train = 0
+        self.time_predict = 0
+        self.time_error = 0
 
+        self.lookup = dict()
+
+    @functools.cached_property
+    def get_train_test_split(self):
+        return self.X_train, self.X_test, self.y_train, self.y_test
+    
     def train(self, data, y):
         """Trains the Linear Regressor object
 
@@ -45,18 +59,21 @@ class LinReg():
             The square root of the MSE of the model
         """
 
-        if rng is None:
-            rng = np.random.default_rng().integers(1000)
+        if feature_mask.tobytes() in self.lookup:
+            return self.lookup[feature_mask.tobytes()]
 
-        X_train, X_test, y_train, y_test = train_test_split(self.X, self.y, test_size=0.2, random_state=rng)
+        X_train, X_test, y_train, y_test = self.get_train_test_split
 
         X_train = self.get_columns(X_train, feature_mask)
         X_test = self.get_columns(X_test, feature_mask)
 
-        model = LinearRegression().fit(X_train, y_train) #self.train(self.X_train[feature_mask], self.y_train)
+        model = LinearRegression(copy_X=False, n_jobs=-1).fit(X_train, y_train)
 
         predictions = model.predict(X_test)
+
         error = np.sqrt(mean_squared_error(predictions, y_test))
+
+        self.lookup[feature_mask.tobytes()] = error
 
         return error
 

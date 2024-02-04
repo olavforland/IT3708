@@ -18,7 +18,6 @@ class SGA(ABC):
 
         bit_position_values = 2**np.arange(0, self.bits)[::-1]
         decoded = population @ bit_position_values
-
         return decoded / 2**(self.bits-7)
 
 
@@ -81,11 +80,11 @@ class SGA(ABC):
     
 
     @abstractmethod
-    def get_fitness(self, population, feasible_region=(0, 128)):
+    def get_fitness(self, population, **kwargs):
         pass
         
     
-    def run(self, generations=10, feasible_region=(0, 128), maximize=True):
+    def run(self, generations=10, maximize=True, p_crossover=0.6, p_mut=0.05, **kwargs):
         
         mean_fitness = []
         best_fitness = []
@@ -95,23 +94,10 @@ class SGA(ABC):
 
         population = self.population.copy()
 
-        while g < generations:
-
-            fitness = self.get_fitness(population, feasible_region=feasible_region)
+        
+        while g < generations + 1:
             
-            
-            parents = self.select_parents(population, fitness, maximize=maximize)
-
-            np.random.shuffle(parents)
-
-            offspring = self.crossover(parents)
-            offspring = self.mutate(offspring, p_mut=0.05)
-            
-            fitness = self.get_fitness(np.concatenate([parents, offspring], axis=0), feasible_region=feasible_region)
-
-            population = self.select_survivors(parents, offspring, fitness=fitness, age_based=False, maximize=maximize)
-
-            g += 1
+            fitness = self.get_fitness(population, **kwargs)
             mean_fitness.append(fitness.mean())
             if maximize:
                 best_fitness.append(fitness.max())
@@ -119,6 +105,22 @@ class SGA(ABC):
                 best_fitness.append(fitness.min())
 
             populations.append(population)
+            
+            parents = self.select_parents(population, fitness, maximize=maximize)
+
+            np.random.shuffle(parents)
+
+            offspring = self.crossover(parents, p_crossover=p_crossover)
+            
+            offspring = self.mutate(offspring, p_mut=p_mut)
+
+            fitness = self.get_fitness(np.concatenate([parents, offspring], axis=0), **kwargs)
+
+            population = self.select_survivors(parents, offspring, fitness=fitness, age_based=False, maximize=maximize)
+
+            g += 1
+
+        
 
         return populations, mean_fitness, best_fitness
 
@@ -128,10 +130,10 @@ class SGA_Sine(SGA):
         super().__init__(size, bits)
 
 
-    def get_fitness(self, population, feasible_region=(0, 128)):
+    def get_fitness(self, population, **kwargs):
         population_values = self.decode(population)
 
-        lb, ub = feasible_region
+        lb, ub = kwargs.get('feasible_region', (0, 128))
         penalty = 0
         lower_penalty = np.where(
             population_values < lb, 
@@ -147,20 +149,17 @@ class SGA_Sine(SGA):
 
         return np.sin(population_values) - penalty
     
-
 class SGA_LinReg(SGA):
 
-    def __init__(self, size, bits, linreg, X, y) -> None:
+    def __init__(self, size, bits, linreg) -> None:
         super().__init__(size, bits)
 
         self.linreg = linreg
-        self.X = X
-        self.y = y
 
-    def get_fitness(self, population, feasible_region=(0, 128)):
+    def get_fitness(self, population, **kwargs):
         fitness = np.zeros(population.shape[0])
 
         for i, feature_mask in enumerate(population):
-            fitness[i] = self.linreg.get_fitness(feature_mask)
+            fitness[i] = self.linreg.get_fitness(feature_mask, rng=42)
 
         return fitness

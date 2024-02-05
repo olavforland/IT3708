@@ -79,12 +79,51 @@ class SGA(ABC):
         return population[indices]
     
 
+    def diversity_maintenance(self, population, fitness, diversity_penalty=0.05, maximize=True):
+        pop, bits = population.shape
+        
+        pop_tuples = np.array([tuple(os) for os in population])
+        
+        similarity_matrix = np.zeros((pop, pop))
+
+        for i in range(pop):
+            for j in range(pop):
+                sim = sum(a == b for a, b in zip(pop_tuples[i], pop_tuples[j]))
+                similarity_matrix[i,j], similarity_matrix[j,i] = sim
+
+
+        penalty = np.zeros(pop)
+        for i in range(pop): 
+            penalty[i] = sum(similarity_matrix[i, :]) * diversity_penalty
+
+        if maximize:
+            fitness += penalty
+        else:
+            fitness -= penalty
+        
+        return population, fitness
+        
+    def restricted_tournament_selection(self, population, fitness, k=2, maximize=True):
+        pop, bits = population.shape
+        new_population = np.zeros((pop, bits))
+
+        for _ in range(pop):
+            indices = np.random.choice(pop, k, replace=False)
+            if maximize:
+                winner = indices[np.argmax(fitness[indices])]
+            else:
+                winner = indices[np.argmin(fitness[indices])]
+            new_population[_] = population[winner]
+
+        return new_population
+    
+
     @abstractmethod
     def get_fitness(self, population, **kwargs):
         pass
         
     
-    def run(self, generations=10, maximize=True, p_crossover=0.6, p_mut=0.05, **kwargs):
+    def run(self, generations=10, maximize=True, p_crossover=0.6, p_mut=0.05, crowding = None, **kwargs):
         
         mean_fitness = []
         best_fitness = []
@@ -116,7 +155,14 @@ class SGA(ABC):
 
             fitness = self.get_fitness(np.concatenate([parents, offspring], axis=0), **kwargs)
 
-            population = self.select_survivors(parents, offspring, fitness=fitness, age_based=False, maximize=maximize)
+            if crowding == 'diversity':
+                population, fitness = self.diversity_maintenance(population, fitness, diversity_penalty= 0.05, maximize=maximize)
+
+            if crowding == 'tournament':
+                population = self.restricted_tournament_selection(population, fitness, k=2, maximize=maximize)
+            
+            else:
+                population = self.select_survivors(parents, offspring, fitness=fitness, age_based=False, maximize=maximize)
 
             g += 1
 

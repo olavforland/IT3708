@@ -79,7 +79,7 @@ class SGA(ABC):
         return population[indices]
     
 
-    def diversity_maintenance(self, population, fitness, diversity_penalty=0.05, maximize=True):
+    def diversity_maintenance(self, population, fitness, diversity_penalty=0.0001, maximize=True):
         pop, bits = population.shape
         
         pop_tuples = np.array([tuple(os) for os in population])
@@ -88,26 +88,29 @@ class SGA(ABC):
 
         for i in range(pop):
             for j in range(pop):
-                sim = sum(a == b for a, b in zip(pop_tuples[i], pop_tuples[j]))
-                similarity_matrix[i,j], similarity_matrix[j,i] = sim
+                sim = sum(a == b for a, b in zip(pop_tuples[i], pop_tuples[j]))/bits
+                similarity_matrix[i,j] = similarity_matrix[j,i] = sim
+                #print(sim)
 
 
         penalty = np.zeros(pop)
         for i in range(pop): 
-            penalty[i] = sum(similarity_matrix[i, :]) * diversity_penalty
-
+            penalty[i] = (sum(similarity_matrix[i])/pop) * diversity_penalty
+            
         if maximize:
-            fitness += penalty
-        else:
             fitness -= penalty
+            indices = fitness.argsort()[::-1][:self.size]
+        else:
+            fitness += penalty
+            indices = fitness.argsort()[:self.size]
         
-        return population, fitness
+        return population[indices]
         
     def restricted_tournament_selection(self, population, fitness, k=2, maximize=True):
         pop, bits = population.shape
-        new_population = np.zeros((pop, bits))
+        new_population = np.zeros((np.ceil(pop/2).astype(int), bits))
 
-        for _ in range(pop):
+        for _ in range(np.ceil(pop/2).astype(int)):
             indices = np.random.choice(pop, k, replace=False)
             if maximize:
                 winner = indices[np.argmax(fitness[indices])]
@@ -117,6 +120,13 @@ class SGA(ABC):
 
         return new_population
     
+    def calculate_entropy(self, population):
+        pop, bits = population.shape
+        num_ones = np.sum(population, axis=0)
+        probas = num_ones / pop
+        probas[probas == 0] = 1e-10
+        return -np.sum(probas * np.log2(probas))
+
 
     @abstractmethod
     def get_fitness(self, population, **kwargs):
@@ -128,6 +138,7 @@ class SGA(ABC):
         mean_fitness = []
         best_fitness = []
         populations = []
+        entropies = []
 
         g = 0
 
@@ -143,6 +154,8 @@ class SGA(ABC):
             else:
                 best_fitness.append(fitness.min())
 
+            entropies.append(self.calculate_entropy(population))
+
             populations.append(population)
             
             parents = self.select_parents(population, fitness, maximize=maximize)
@@ -156,10 +169,10 @@ class SGA(ABC):
             fitness = self.get_fitness(np.concatenate([parents, offspring], axis=0), **kwargs)
 
             if crowding == 'diversity':
-                population, fitness = self.diversity_maintenance(population, fitness, diversity_penalty= 0.05, maximize=maximize)
+                population = self.diversity_maintenance(np.concatenate([parents, offspring], axis = 0), fitness, diversity_penalty= 0.005, maximize=maximize)
 
-            if crowding == 'tournament':
-                population = self.restricted_tournament_selection(population, fitness, k=2, maximize=maximize)
+            elif crowding == 'tournament':
+                population = self.restricted_tournament_selection(np.concatenate([parents, offspring], axis = 0), fitness, k=2, maximize=maximize)
             
             else:
                 population = self.select_survivors(parents, offspring, fitness=fitness, age_based=False, maximize=maximize)
@@ -168,7 +181,7 @@ class SGA(ABC):
 
         
 
-        return populations, mean_fitness, best_fitness
+        return populations, mean_fitness, best_fitness, entropies
 
 class SGA_Sine(SGA):
     

@@ -6,6 +6,9 @@ from abc import ABC, abstractmethod
 
 class SGA(ABC):
 
+    
+    #-------------- Task 1a) Init population------#
+
     def __init__(self, size, bits) -> None:
         super().__init__()
 
@@ -13,6 +16,7 @@ class SGA(ABC):
         self.bits = bits
         self.population = np.random.choice([0, 1], size=(size, bits))
 
+    #--------------- END --------------------------#
 
     def decode(self, population):
 
@@ -26,6 +30,8 @@ class SGA(ABC):
         probas = (fitness - fitness.min() + 1e-6) / (fitness - fitness.min() + 1e-6).sum()
         return probas
 
+    #--------------- Task 1b) Parent selection-----#
+
     def select_parents(self, population, fitness, maximize=True):
 
 
@@ -37,6 +43,10 @@ class SGA(ABC):
         parent_ind = np.random.choice(self.size, self.size, replace=True, p=probas)
         return population[parent_ind]
 
+    #--------------- END --------------------------#
+
+
+    #--------------- Task 1c) generate children----#
 
     def crossover(self, parents, p_crossover=0.6):
         size, bits = parents.shape
@@ -64,12 +74,20 @@ class SGA(ABC):
         mutation = np.random.choice([0, 1], size=offspring.shape, p=[1-p_mut, p_mut])
         mutated_offspring = np.logical_xor(offspring, mutation)
         return mutated_offspring
-        
-        
+
+    #--------------- END --------------------------#
+
+    #--------------- Task 1d) select survivors ----------#    
+    
     def select_survivors(self, parents, offspring, fitness, age_based=True, maximize=True):
+        
+        #------- Task 1d) Method 1:  Age based ----------#
+
         if age_based:
             return offspring
         
+        #------- Task 1d) Method 2:  Fitness based ------#
+
         population = np.concatenate([parents, offspring], axis=0)
         if maximize:
             indices = fitness.argsort()[::-1][:self.size]
@@ -77,25 +95,28 @@ class SGA(ABC):
             indices = fitness.argsort()[:self.size]
 
         return population[indices]
+
+    #--------------- END --------------------------#
+
+
+
+    #--------------- Task 1h) crowding ------------#
+    
+    def _compute_similarity_matrix(self, population):
+        pop, bits = population.shape    
     
 
+        idx1, idx2 = np.meshgrid(np.arange(pop), np.arange(pop), indexing='ij')
+        similarity_matrix = (population[idx1] == population[idx2]).mean(axis=-1)
+
+        return similarity_matrix
+    #--------------- Approach 1: Penalise similarity to other geontypes----------------#
     def diversity_maintenance(self, population, fitness, diversity_penalty=0.0001, maximize=True):
         pop, bits = population.shape
         
-        pop_tuples = np.array([tuple(os) for os in population])
-        
-        similarity_matrix = np.zeros((pop, pop))
+        similarity_matrix = self._compute_similarity_matrix(population)
 
-        for i in range(pop):
-            for j in range(pop):
-                sim = sum(a == b for a, b in zip(pop_tuples[i], pop_tuples[j]))/bits
-                similarity_matrix[i,j] = similarity_matrix[j,i] = sim
-                #print(sim)
-
-
-        penalty = np.zeros(pop)
-        for i in range(pop): 
-            penalty[i] = (sum(similarity_matrix[i])/pop) * diversity_penalty
+        penalty = similarity_matrix.mean(axis=1) * diversity_penalty
             
         if maximize:
             fitness -= penalty
@@ -105,20 +126,32 @@ class SGA(ABC):
             indices = fitness.argsort()[:self.size]
         
         return population[indices]
-        
-    def restricted_tournament_selection(self, population, fitness, k=2, maximize=True):
+    
+    #--------------- Approach 2: Let similar genotypes compete for survival-----------#
+    def restricted_tournament_selection(self, population, fitness, k=4, maximize=True):
         pop, bits = population.shape
-        new_population = np.zeros((np.ceil(pop/2).astype(int), bits))
+        
+        winners = []
+        
+        similarity_matrix = self._compute_similarity_matrix(population)
 
-        for _ in range(np.ceil(pop/2).astype(int)):
-            indices = np.random.choice(pop, k, replace=False)
+        for _ in range(0, np.ceil(pop/2).astype(int)):
+            inv_idx = np.random.choice(pop, 1, replace=False)
+
+            similarities = similarity_matrix[inv_idx]
+
+            idx = np.argsort(similarities)[0][::-1][:k]
+
             if maximize:
-                winner = indices[np.argmax(fitness[indices])]
+                winner = idx[np.argmax(fitness[idx])]
+                winners.append(winner)
             else:
-                winner = indices[np.argmin(fitness[indices])]
-            new_population[_] = population[winner]
+                winner = idx[np.argmin(fitness[idx])]
+                winners.append(winner)
 
-        return new_population
+        return population[winners]
+    
+    #--------------- END --------------------------#
     
     def calculate_entropy(self, population):
         pop, bits = population.shape
@@ -133,6 +166,9 @@ class SGA(ABC):
         pass
         
     
+
+    #------- Run the genetic algorithm -------#
+
     def run(self, generations=10, maximize=True, p_crossover=0.6, p_mut=0.05, crowding = None, **kwargs):
         
         mean_fitness = []
@@ -182,12 +218,16 @@ class SGA(ABC):
         
 
         return populations, mean_fitness, best_fitness, entropies
+    
+    #--------------- END --------------------------#
 
 class SGA_Sine(SGA):
     
     def __init__(self, size, bits) -> None:
         super().__init__(size, bits)
 
+
+    #--------------- Task 1f) ---------------------#
 
     def get_fitness(self, population, **kwargs):
         population_values = self.decode(population)
@@ -208,6 +248,10 @@ class SGA_Sine(SGA):
 
         return np.sin(population_values) - penalty
     
+    #--------------- END --------------------------#
+
+
+
 class SGA_LinReg(SGA):
 
     def __init__(self, size, bits, linreg) -> None:

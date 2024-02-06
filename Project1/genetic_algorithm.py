@@ -111,7 +111,7 @@ class SGA(ABC):
 
         return similarity_matrix
     #--------------- Approach 1: Penalise similarity to other geontypes----------------#
-    def diversity_maintenance(self, population, fitness, diversity_penalty=0.0001, maximize=True):
+    def similarity_penalty(self, population, fitness, diversity_penalty=0.0001, maximize=True):
         pop, bits = population.shape
         
         similarity_matrix = self._compute_similarity_matrix(population)
@@ -205,10 +205,10 @@ class SGA(ABC):
             fitness = self.get_fitness(np.concatenate([parents, offspring], axis=0), **kwargs)
 
             if crowding == 'similarity_penalty':
-                population = self.diversity_maintenance(np.concatenate([parents, offspring], axis = 0), fitness, diversity_penalty= 0.005, maximize=maximize)
+                population = self.similarity_penalty(np.concatenate([parents, offspring], axis = 0), fitness, diversity_penalty= 0.005, maximize=maximize)
 
             elif crowding == 'tournament':
-                population = self.restricted_tournament_selection(np.concatenate([parents, offspring], axis = 0), fitness, k=2, maximize=maximize)
+                population = self.restricted_tournament_selection(np.concatenate([parents, offspring], axis = 0), fitness, k=5, maximize=maximize)
             
             else:
                 population = self.select_survivors(parents, offspring, fitness=fitness, age_based=False, maximize=maximize)

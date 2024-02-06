@@ -57,13 +57,13 @@ def plot_entropy(entropy_dict):
 
     plt.show()
 
-def compare_fitness(best_fitness_dict, legend_title):
+def compare_fitness(best_fitness_dict):
     fig = plt.figure(figsize=(20, 8))
     colors = sns.color_palette('deep', n_colors=len(best_fitness_dict))
 
     
     for i, (key, value) in enumerate(best_fitness_dict.items()):
-        sns.lineplot(x=list(range(len(value))), y=value, linewidth=4, alpha=0.8, label=key, color=colors[i], linestyle='--')
+        sns.lineplot(x=list(range(len(value))), y=value, linewidth=4, alpha=0.8, label=key, color=colors[i])
 
     plt.ylabel('Fitness', fontsize=22, fontfamily='serif', labelpad=15)
     plt.xlabel('Generations', fontsize=22, fontfamily='serif', labelpad=15)
@@ -71,7 +71,7 @@ def compare_fitness(best_fitness_dict, legend_title):
     plt.yticks(fontsize=13, fontfamily='serif')
 
     legend = plt.legend(
-        fontsize=14, title=legend_title,
+        fontsize=14, title='',
         frameon=False, prop={'family':'serif', 'size':20},
         ncol=1, title_fontproperties=dict(family='serif', size=22, weight='bold')
     )

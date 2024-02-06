@@ -204,7 +204,7 @@ class SGA(ABC):
 
             fitness = self.get_fitness(np.concatenate([parents, offspring], axis=0), **kwargs)
 
-            if crowding == 'diversity':
+            if crowding == 'similarity_penalty':
                 population = self.diversity_maintenance(np.concatenate([parents, offspring], axis = 0), fitness, diversity_penalty= 0.005, maximize=maximize)
 
             elif crowding == 'tournament':

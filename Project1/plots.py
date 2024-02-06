@@ -44,8 +44,8 @@ def plot_sine(population, generation=0):
     x = np.linspace(0, 128, 10000)
     y = np.sin(x)
 
-    sns.scatterplot(x=population[generation], y=np.sin(population[generation]), color='red', label='Individual', s=100, alpha=1)
-    sns.lineplot(x=x, y=y, linewidth=4, alpha=0.8, label='Sine function')
+    sns.scatterplot(x=population[generation], y=np.sin(population[generation]), color='red', label='Individual', s=200, alpha=1)
+    sns.lineplot(x=x, y=y, linewidth=4, alpha=0.5, label='Sine function')
 
     plt.ylabel('Fitness', fontsize=22, fontfamily='serif', labelpad=15)
     plt.xlabel('Individuals', fontsize=22, fontfamily='serif', labelpad=15)

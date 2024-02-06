@@ -205,13 +205,16 @@ class SGA(ABC):
             fitness = self.get_fitness(np.concatenate([parents, offspring], axis=0), **kwargs)
 
             if crowding == 'similarity_penalty':
-                population = self.similarity_penalty(np.concatenate([parents, offspring], axis = 0), fitness, diversity_penalty= 0.005, maximize=maximize)
+                diversity_penalty = kwargs.get('diversity_penalty', 0.005)
+                population = self.similarity_penalty(np.concatenate([parents, offspring], axis = 0), fitness, diversity_penalty=diversity_penalty, maximize=maximize)
 
             elif crowding == 'tournament':
-                population = self.restricted_tournament_selection(np.concatenate([parents, offspring], axis = 0), fitness, k=5, maximize=maximize)
+                k = kwargs.get('k', 5)
+                population = self.restricted_tournament_selection(np.concatenate([parents, offspring], axis = 0), fitness, k=k, maximize=maximize)
             
             else:
-                population = self.select_survivors(parents, offspring, fitness=fitness, age_based=False, maximize=maximize)
+                age_based = kwargs.get('age_based', False)
+                population = self.select_survivors(parents, offspring, fitness=fitness, age_based=age_based, maximize=maximize)
 
             g += 1
 

@@ -22,6 +22,8 @@ end
 struct ProblemInstance
     depot_return_time::Int
     depot_coords::Tuple{Int, Int}
+    n_nurses::Int
+    nurse_capacity::Int
     patients::Vector{Patient}
     travel_times::Vector{Vector{Float64}}
 end
@@ -48,8 +50,11 @@ function parse_data(filepath::String)
         push!(travel_times, [Float64(elem) for elem in row])
     end
 
+    n_nurses = raw_data["nbr_nurses"]
+    nurse_capacity = raw_data["capacity_nurse"]
+
     # Return all parsed data
-    return ProblemInstance(depot_return_time, depot_coords, patients, travel_times)
+    return ProblemInstance(depot_return_time, depot_coords, n_nurses, nurse_capacity, patients, travel_times)
 end
 
 

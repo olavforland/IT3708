@@ -1,12 +1,11 @@
-# DataParser.jl
 module DataParser
 
 export parse_data
 
 using JSON
 
-# Define a structure to hold your data if needed
 struct Patient
+    id::Int
     x_coord::Int
     y_coord::Int
     demand::Int
@@ -34,8 +33,8 @@ function parse_data(filepath::String)
 
     # Extract data for the patients
     patients_data = raw_data["patients"]
-    patients = [Patient(pat["x_coord"], pat["y_coord"], pat["demand"],
-                        pat["start_time"], pat["end_time"], pat["care_time"]) for (_, pat) in patients_data]
+    patients = [Patient(parse(Int, id), pat["x_coord"], pat["y_coord"], pat["demand"],
+                        pat["start_time"], pat["end_time"], pat["care_time"]) for (id, pat) in patients_data]
 
     travel_times_data = raw_data["travel_times"]
     travel_times = Vector{Vector{Float64}}()

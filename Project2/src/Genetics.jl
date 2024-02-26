@@ -26,8 +26,10 @@ function compute_fitness!(chromosome::Chromosome, problem_instance::ProblemInsta
         # Start at depot
         prev_patient = 1
         for patient in route
-            travel_time += travel_times[prev_patient][patient]
-            prev_patient = patient
+            # Increment by one due to 1-indexing
+            travel_time += travel_times[prev_patient][patient + 1]
+            # Increment by one due to 1-indexing
+            prev_patient = patient + 1
         end
         # End at depot
         travel_time += travel_times[prev_patient][1]
@@ -47,7 +49,7 @@ function compute_unfitness!(chromosome::Chromosome, problem_instance::ProblemIns
         prev_patient = 1
         for patient in route
             # Add travel time
-            elapsed_time += problem_instance.travel_times[prev_patient][patient]
+            elapsed_time += problem_instance.travel_times[prev_patient][patient + 1]
             # If arrive early, wait
             elapsed_time += max(problem_instance.patients[patient].start_time - elapsed_time, 0)
             # If arrive late, add to time violation
@@ -57,13 +59,13 @@ function compute_unfitness!(chromosome::Chromosome, problem_instance::ProblemIns
             # Add strain on nurse
             nurse_strain += problem_instance.patients[patient].demand
 
-            prev_patient = patient
+            prev_patient = patient + 1
         end
         # Add travel time back to depot
         elapsed_time += problem_instance.travel_times[prev_patient][1]
         time_violation += max(elapsed_time - problem_instance.depot_return_time, 0)
         # Express time unfitness as a percentage of the total time spent
-        time_unfitness += time_violation / elapsed_time
+        time_unfitness += time_violation > 0 ? time_violation / elapsed_time : 0.0
         # Express strain unfitness as a percentage of the total capacity
         strain_unfitness += max(nurse_strain - problem_instance.nurse_capacity, 0) / problem_instance.nurse_capacity 
     end

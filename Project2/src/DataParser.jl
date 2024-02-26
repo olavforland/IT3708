@@ -1,13 +1,13 @@
 module DataParser
 
-export parse_data
+export parse_data, Patient, ProblemInstance
 
 using JSON
 
 mutable struct Patient
     id::Int
     x_coord::Int
-    y_coord::Int
+    y_coord::Int    
     demand::Int
     start_time::Int
     end_time::Int

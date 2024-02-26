@@ -1,13 +1,20 @@
 module TSPHeuristic
 
+export nearest_neighbor_heuristic
+
 using ..DataParser: ProblemInstance, Patient
 using ..Genetics: Chromosome
+
+
 
 
 # function to generate a solution based on the nearest neighbor heuristic
 function nearest_neighbor_heuristic(instance::ProblemInstance, chromosome::Chromosome, nurse::Int)
     genotype = chromosome.genotype
     nurse_patient_idx = findall(x -> x == nurse, genotype)
+    # if nurse_patient_idx == []
+    #     return []
+    # end
     nurse_patients = instance.patients[nurse_patient_idx]
     travel_times = instance.travel_times
 

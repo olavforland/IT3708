@@ -6,6 +6,7 @@ include("Utils.jl")
 include("Mutation.jl")
 include("Crossover.jl")
 include("Selection.jl")
+include("TSPHeuristic.jl")
 include("GA.jl")
 
 using .DataParser: parse_data, Patient
@@ -27,7 +28,7 @@ writepath = joinpath("solutions", "train_" * string(instance_nr) * ".json")
 instance = parse_data(readpath)
 
 
-population = genetic_algorithm(instance, 50, 100000000, 0.1, instance.n_nurses)
+population = genetic_algorithm(instance, 50, 500000, 0.1, instance.n_nurses)
 
 best_individual = population[findmin(getfield.(population, :fitness))[2]]
 

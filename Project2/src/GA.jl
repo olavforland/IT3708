@@ -8,6 +8,7 @@ using ..Genetics
 using ..Crossover
 using ..Mutation
 using ..Selection
+using ..TSPHeuristic
 
 
 function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int, n_generations::Int, mutation_rate::Float64, n_nurses::Int)
@@ -19,9 +20,14 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
         swap_mutation!(c1, mutation_rate), swap_mutation!(c2, mutation_rate)
 
         # Perform routing step
-        c1.phenotype = simple_routing_sort_start_times(c1, problem_instance.patients, n_nurses)
-        c2.phenotype = simple_routing_sort_start_times(c2, problem_instance.patients, n_nurses)
-        
+        c1.phenotype = [Vector{Int}() for _ in 1:n_nurses]
+        c2.phenotype = [Vector{Int}() for _ in 1:n_nurses]
+        for nurse in unique(c1.genotype)
+            c1.phenotype[nurse] = nearest_neighbor_heuristic(problem_instance, c1, nurse)
+            c2.phenotype[nurse] = nearest_neighbor_heuristic(problem_instance, c2, nurse)
+        end
+
+
         # Evaluate fitness and unfitness
         compute_fitness!(c1, problem_instance), compute_fitness!(c2, problem_instance)
         compute_unfitness!(c1, problem_instance), compute_unfitness!(c2, problem_instance)
@@ -36,7 +42,7 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
 
         survivor_selection!(population, child) 
         
-        if generation % 50000 == 0
+        if generation % 10000 == 0
             best_chromosome = population[findmin(getfield.(population, :fitness))[2]]
             println("Generation: ", generation, " Fitness: ", best_chromosome.fitness, " Time unfitness: ", best_chromosome.time_unfitness, " Strain unfitness: ", best_chromosome.strain_unfitness)
         end

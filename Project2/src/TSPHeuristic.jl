@@ -22,7 +22,7 @@ function nearest_neighbor_heuristic(instance::ProblemInstance, chromosome::Chrom
         nearest_patient = nothing
         for patient in nurse_patients
             if travel_times[current+1][patient.id+1] < min_time
-                min_time = travel_times[current +1][patient.id +1]
+                min_time = travel_times[current+1][patient.id+1]
                 nearest_patient = patient
             end
         end
@@ -39,5 +39,25 @@ function nearest_neighbor_heuristic(instance::ProblemInstance, chromosome::Chrom
 
     return greedy_order
 end
+
+
+
+function savelsbergh_heuristic(instance::ProblemInstance, chromosome::Chromosome, nurse::Int)
+    genotype = chromosome.genotype
+    nurse_patient_idx = findall(x -> x == nurse, genotype)
+    nurse_patients = instance.patients[nurse_patient_idx]
+    travel_times = instance.travel_times
+
+    order = []
+
+    while !isempty(nurse_patients)
+        best_insertion_cost = Inf
+        best_insertion_idx = 0
+        best_insertion_patient = nothing
+    end
+
+    return order
+end
+
 
 end # module TSPHeuristic

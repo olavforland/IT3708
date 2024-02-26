@@ -4,11 +4,13 @@ include("DataParser.jl")
 include("Genetics.jl")
 include("Utils.jl")
 include("GA.jl")
+include("Mutation.jl")
 
 using .DataParser: parse_data
 using .Genetics: Chromosome, compute_fitness!, compute_unfitness!
 using .GA: initialize_population
 using .Utils: write_chromosome_to_file
+using .Mutation: swap_mutation!
 # push!(LOAD_PATH, pwd())
 
 instance_nr = 0
@@ -29,6 +31,10 @@ compute_unfitness!(test, instance)
 println(test.fitness)
 println(test.time_unfitness)
 println(test.strain_unfitness)
+
+swap_mutation!(test)
+
+println(test.genotype)
 
 population = initialize_population(10, instance.n_nurses, instance)
 

@@ -44,6 +44,9 @@ function parse_data(filepath::String)
 
     rank_patients!(patients, depot_coords) 
 
+    # Make sure patients are sorted by id
+    sort!(patients, by = p -> p.id)
+
     travel_times_data = raw_data["travel_times"]
     travel_times = Vector{Vector{Float64}}()
     for row in travel_times_data

@@ -5,7 +5,12 @@ export swap_mutation!
 using ..Genetics: Chromosome
 
 
-function swap_mutation!(chromosome::Chromosome)
+function swap_mutation!(chromosome::Chromosome, mutation_rate::Float64=0.1)
+
+    if rand() > mutation_rate
+        return
+    end
+
     n_patients = length(chromosome.genotype)
 
     # Randomly select two patients

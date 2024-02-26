@@ -1,6 +1,6 @@
 module Genetics
 
-export Chromosome, compute_fitness!, compute_unfitness!
+export Chromosome, compute_fitness!, compute_unfitness!, simple_routing_sort_start_times
 
 using ..DataParser: Patient, ProblemInstance
 
@@ -16,6 +16,8 @@ mutable struct Chromosome
     # Constructor that sets phenotype, fitness and unfitness to nothing by default
     Chromosome(genotype::Vector{Int}) = new(genotype, nothing, nothing, nothing)
 end
+
+
 
 
 function compute_fitness!(chromosome::Chromosome, problem_instance::ProblemInstance)
@@ -72,6 +74,23 @@ function compute_unfitness!(chromosome::Chromosome, problem_instance::ProblemIns
 
     chromosome.time_unfitness = time_unfitness
     chromosome.strain_unfitness = strain_unfitness
+end
+
+
+function simple_routing_sort_start_times(chromosome::Chromosome, patients::Vector{Patient}, n_nurses::Int)
+    routes = [Vector{Int}() for _ in 1:n_nurses]  # Initialize empty routes for each nurse
+    
+    # Populate routes with patient indices
+    for (patient_index, nurse_id) in enumerate(chromosome.genotype)
+        push!(routes[nurse_id], patient_index)
+    end
+
+    # Sort routes based on patients' start times
+    for i in 1:n_nurses
+        routes[i] = sort(routes[i], by = p -> patients[p].start_time)
+    end
+
+    return routes
 end
 
 end # module

@@ -6,6 +6,7 @@ include("Utils.jl")
 include("GA.jl")
 include("Mutation.jl")
 include("Crossover.jl")
+include("Selection.jl")
 
 using .DataParser: parse_data
 using .Genetics: Chromosome, compute_fitness!, compute_unfitness!
@@ -13,6 +14,7 @@ using .GA: initialize_population
 using .Utils: write_chromosome_to_file
 using .Mutation: swap_mutation!
 using .Crossover: two_point_crossover
+using .Selection: tournament_selection
 # push!(LOAD_PATH, pwd())
 
 instance_nr = 0
@@ -38,9 +40,11 @@ swap_mutation!(test)
 
 two_point_crossover(test, test)
 
-
-
 population = initialize_population(10, instance.n_nurses, instance)
+
+p1, p2 = tournament_selection(population, 2)
+
+
 
 best_individual = population[findmin(getfield.(population, :fitness))[2]]
 

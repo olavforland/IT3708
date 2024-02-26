@@ -14,7 +14,7 @@ using .GA: initialize_population
 using .Utils: write_chromosome_to_file
 using .Mutation: swap_mutation!
 using .Crossover: two_point_crossover
-using .Selection: tournament_selection
+using .Selection: tournament_selection, partition_population, survivor_selection!
 # push!(LOAD_PATH, pwd())
 
 instance_nr = 0
@@ -43,6 +43,9 @@ two_point_crossover(test, test)
 population = initialize_population(10, instance.n_nurses, instance)
 
 p1, p2 = tournament_selection(population, 2)
+
+
+survivor_selection!(population, p1)
 
 
 

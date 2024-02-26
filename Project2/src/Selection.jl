@@ -1,6 +1,6 @@
 module Selection
 
-export tournament_selection, partition_population
+export tournament_selection, partition_population, survivor_selection!
 
 using ..Genetics: Chromosome
 
@@ -34,10 +34,6 @@ function survivor_selection!(population::Vector{Chromosome}, child::Chromosome)
             sort!(subset, by=x -> (x.time_unfitness, x.strain_unfitness, x.fitness), rev=true)
             # The worst chromosome is now the first in the sorted subset
             worst_chromosome = subset[1]
-            println("Worst chromosome: ", worst_chromosome)
-            println("")
-            println("Child: ", child)
-
 
             # Find the index of this chromosome in the population
             worst_index = findfirst(x -> x == worst_chromosome, population)

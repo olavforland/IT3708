@@ -1,10 +1,56 @@
 
 module GA
 
-export initialize_population
+export initialize_population, genetic_algorithm
 
 using ..DataParser
 using ..Genetics
+using ..Crossover
+using ..Mutation
+using ..Selection
+using ..TSPHeuristic
+
+
+function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int, n_generations::Int, mutation_rate::Float64, n_nurses::Int)
+    population = initialize_population(n_individuals, n_nurses, problem_instance)
+
+    for generation in 1:n_generations
+        p1, p2 = tournament_selection(population, 2)
+        c1, c2 = two_point_crossover(p1, p2)
+        swap_mutation!(c1, mutation_rate), swap_mutation!(c2, mutation_rate)
+
+        # Perform routing step
+        c1.phenotype = [Vector{Int}() for _ in 1:n_nurses]
+        c2.phenotype = [Vector{Int}() for _ in 1:n_nurses]
+        for nurse in unique(c1.genotype)
+            c1.phenotype[nurse] = nearest_neighbor_heuristic(problem_instance, c1, nurse)
+            c2.phenotype[nurse] = nearest_neighbor_heuristic(problem_instance, c2, nurse)
+        end
+
+
+        # Evaluate fitness and unfitness
+        compute_fitness!(c1, problem_instance), compute_fitness!(c2, problem_instance)
+        compute_unfitness!(c1, problem_instance), compute_unfitness!(c2, problem_instance)
+
+        # Get favoured offspring  based on fitness
+        child = c1.fitness > c2.fitness ? c1 : c2
+
+        # Check if child in population
+        if in(child, population)
+            continue
+        end
+
+        survivor_selection!(population, child) 
+        
+        if generation % 10000 == 0
+            best_chromosome = population[findmin(getfield.(population, :fitness))[2]]
+            println("Generation: ", generation, " Fitness: ", best_chromosome.fitness, " Time unfitness: ", best_chromosome.time_unfitness, " Strain unfitness: ", best_chromosome.strain_unfitness)
+        end
+
+    end
+
+    return population
+end
 
 
 function initialize_population(n_individuals::Int, n_nurses::Int, problem_instance::ProblemInstance)
@@ -32,25 +78,14 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
             p = mod1(j + delta, n_patients)
             patient = ranked_patients[p]
 
-            # println("Current patient: ", patient)
-            # println("Current nurse: ", current_nurse)
-
             # Add patient to the genotype
             chromosome.genotype[patient.id] = current_nurse
-
-            # println("Current genotype: ", chromosome.genotype)
 
             # Sort the patients by start of time window
             chromosome.phenotype[current_nurse] = push!(chromosome.phenotype[current_nurse], patient.id)
             chromosome.phenotype[current_nurse] = sort(chromosome.phenotype[current_nurse], by = p -> patients[p].start_time)
 
-            # println("Current phenotype: ", chromosome.phenotype)
-
             compute_unfitness!(chromosome, problem_instance)
-
-            # println("Time unfitness: ", chromosome.time_unfitness)
-            # println("Strain unfitness: ", chromosome.strain_unfitness)
-            # println("")
 
             if chromosome.time_unfitness > prev_time_unfitness || chromosome.strain_unfitness > prev_strain_unfitness
                 current_nurse += 1

@@ -5,12 +5,14 @@ include("Genetics.jl")
 include("Utils.jl")
 include("GA.jl")
 include("Mutation.jl")
+include("Crossover.jl")
 
 using .DataParser: parse_data
 using .Genetics: Chromosome, compute_fitness!, compute_unfitness!
 using .GA: initialize_population
 using .Utils: write_chromosome_to_file
 using .Mutation: swap_mutation!
+using .Crossover: two_point_crossover
 # push!(LOAD_PATH, pwd())
 
 instance_nr = 0
@@ -34,7 +36,9 @@ println(test.strain_unfitness)
 
 swap_mutation!(test)
 
-println(test.genotype)
+two_point_crossover(test, test)
+
+
 
 population = initialize_population(10, instance.n_nurses, instance)
 

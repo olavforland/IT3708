@@ -13,8 +13,18 @@ mutable struct Chromosome
     time_unfitness::Union{Float64, Nothing}
     strain_unfitness::Union{Float64, Nothing}
 
+    route_time_unfitness::Union{Vector{Float64}, Nothing}
+    route_strain_unfitness::Union{Vector{Float64}, Nothing}
+
     # Constructor that sets phenotype, fitness and unfitness to nothing by default
-    Chromosome(genotype::Vector{Int}) = new(genotype, nothing, nothing, nothing)
+    Chromosome(genotype::Vector{Int}) = new(genotype, nothing, nothing, nothing, nothing, nothing)
+    Chromosome(genotype::Vector{Int}, n_nurses::Int) = new(
+        genotype, 
+        [Vector{Int}() for _ in 1:n_nurses], 
+        nothing, nothing, nothing, 
+        [0.0 for _ in 1:n_nurses], 
+        [0.0 for _ in 1:n_nurses]
+    )
 end
 
 
@@ -44,7 +54,7 @@ function compute_unfitness!(chromosome::Chromosome, problem_instance::ProblemIns
     time_unfitness = 0.0
     strain_unfitness = 0.0
 
-    for route in chromosome.phenotype
+    for (n, route) in enumerate(chromosome.phenotype)
         elapsed_time = 0.0
         time_violation = 0.0
         nurse_strain = 0
@@ -55,7 +65,7 @@ function compute_unfitness!(chromosome::Chromosome, problem_instance::ProblemIns
             # If arrive early, wait
             elapsed_time += max(problem_instance.patients[patient].start_time - elapsed_time, 0)
             # If arrive late, add to time violation
-            time_violation += max(elapsed_time - problem_instance.patients[patient].end_time, 0)
+            time_violation += max(elapsed_time - (problem_instance.patients[patient].end_time - problem_instance.patients[patient].care_time), 0)
             # Add care time
             elapsed_time += problem_instance.patients[patient].care_time
             # Add strain on nurse
@@ -66,10 +76,16 @@ function compute_unfitness!(chromosome::Chromosome, problem_instance::ProblemIns
         # Add travel time back to depot
         elapsed_time += problem_instance.travel_times[prev_patient][1]
         time_violation += max(elapsed_time - problem_instance.depot_return_time, 0)
+        
         # Express time unfitness as a percentage of the total time spent
-        time_unfitness += time_violation > 0 ? time_violation / elapsed_time : 0.0
+        route_time_unfitness = time_violation > 0 ? time_violation / elapsed_time : 0.0
+        chromosome.route_time_unfitness[n] = route_time_unfitness
+        time_unfitness += route_time_unfitness
+
         # Express strain unfitness as a percentage of the total capacity
-        strain_unfitness += max(nurse_strain - problem_instance.nurse_capacity, 0) / problem_instance.nurse_capacity 
+        route_strain_unfitness = max(nurse_strain - problem_instance.nurse_capacity, 0) / problem_instance.nurse_capacity
+        chromosome.route_strain_unfitness[n] = route_strain_unfitness
+        strain_unfitness += route_strain_unfitness
     end
 
     chromosome.time_unfitness = time_unfitness

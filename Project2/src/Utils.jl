@@ -2,6 +2,8 @@
 
 module Utils
 
+export chromosome_to_dict, write_chromosome_to_file, count_unique_individuals
+
 using JSON
 using ..Genetics: Chromosome
 
@@ -25,5 +27,12 @@ function write_chromosome_to_file(chromosome::Chromosome, filename::String)
     end
 end
 
+
+function count_unique_individuals(population::Vector{Chromosome})
+    # Convert genotype to hashable string
+    genotypes_str = map(c -> join(c.genotype, ","), population)
+    
+    return length(unique(genotypes_str))
+end
 
 end # module

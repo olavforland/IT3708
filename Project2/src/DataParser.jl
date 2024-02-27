@@ -26,6 +26,9 @@ struct ProblemInstance
     nurse_capacity::Int
     patients::Vector{Patient}
     travel_times::Vector{Vector{Float64}}
+
+    # Contains entries (i, j) where i cannot be visited before j
+    inadmissable_presedence::Set{Tuple{Int, Int}}
 end
 
 function parse_data(filepath::String)
@@ -53,11 +56,13 @@ function parse_data(filepath::String)
         push!(travel_times, [Float64(elem) for elem in row])
     end
 
+    inadmissable_presedence = compute_inadmissable_presedence(patients, travel_times)
+
     n_nurses = raw_data["nbr_nurses"]
     nurse_capacity = raw_data["capacity_nurse"]
 
     # Return all parsed data
-    return ProblemInstance(depot_return_time, depot_coords, n_nurses, nurse_capacity, patients, travel_times)
+    return ProblemInstance(depot_return_time, depot_coords, n_nurses, nurse_capacity, patients, travel_times, inadmissable_presedence)
 end
 
 
@@ -92,6 +97,23 @@ function rank_patients!(patients::Vector{Patient}, depot::Tuple{Int, Int})
     for (i, patient) in enumerate(patients)
         patient.rank = i
     end
+end
+
+function compute_inadmissable_presedence(patients, travel_times)
+
+    inadmissable_presedence = Set{Tuple{Int, Int}}()
+
+    for patient in patients
+        for next_patient in patients
+            travel_time = travel_times[patient.id+1][next_patient.id+1]
+            if patient.start_time + travel_time + patient.care_time > next_patient.end_time
+                push!(inadmissable_presedence, (patient.id, next_patient.id))
+            end
+        end
+    end
+
+    return inadmissable_presedence
+
 end
 
 end # module

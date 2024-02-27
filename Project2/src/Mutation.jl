@@ -21,7 +21,7 @@ function swap_mutation!(chromosome::Chromosome, mutation_rate::Float64=0.1)
     chromosome.genotype[patient1], chromosome.genotype[patient2] = chromosome.genotype[patient2], chromosome.genotype[patient1]
 
     # Phenotype, fitness and unfitness must be recomputed
-    chromosome.phenotype = nothing
+    chromosome.phenotype = [Vector{Int}() for _ in 1:length(chromosome.phenotype)]
     chromosome.fitness = nothing
     chromosome.time_unfitness = nothing
     chromosome.strain_unfitness = nothing

@@ -28,9 +28,18 @@ function nearest_neighbor_heuristic(instance::ProblemInstance, chromosome::Chrom
         min_time = Inf
         nearest_patient = nothing
         for patient in nurse_patients
-            if travel_times[current+1][patient.id+1] < min_time
+            if travel_times[current+1][patient.id+1] < min_time && ((current, patient.id) ∉ instance.inadmissable_presedence)
                 min_time = travel_times[current+1][patient.id+1]
                 nearest_patient = patient
+            end
+        end
+        if isnothing(nearest_patient)
+            # Add the remaining nurse patients to the greedy order
+            for patient in nurse_patients
+                if travel_times[current+1][patient.id+1] < min_time
+                    min_time = travel_times[current+1][patient.id+1]
+                    nearest_patient = patient
+                end
             end
         end
 

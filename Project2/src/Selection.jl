@@ -1,6 +1,6 @@
 module Selection
 
-export tournament_selection, partition_population, survivor_selection!
+export tournament_selection, survivor_selection!
 
 using ..Genetics: Chromosome
 
@@ -16,7 +16,7 @@ function tournament_selection(population::Vector{Chromosome}, n::Int)
         end
 
         # Select the best individual
-        if population[i1].fitness > population[i2].fitness
+        if population[i1].fitness < population[i2].fitness
             push!(selected, population[i1])
         else
             push!(selected, population[i2])
@@ -26,11 +26,12 @@ function tournament_selection(population::Vector{Chromosome}, n::Int)
 end
 
 function survivor_selection!(population::Vector{Chromosome}, child::Chromosome)
-    subsets = partition_population(population, child)
-
+    subsets = partition_population_8_subsets(population, child)
+    count = 0
     for subset in subsets
         if !isempty(subset)
-            # Sort the subset based on your criteria
+            count += 1
+            # Sort the subset based on fitness, strain unfitness and time unfitness
             sort!(subset, by=x -> (x.time_unfitness, x.strain_unfitness, x.fitness), rev=true)
             # The worst chromosome is now the first in the sorted subset
             worst_chromosome = subset[1]
@@ -47,7 +48,7 @@ function survivor_selection!(population::Vector{Chromosome}, child::Chromosome)
 end
 
 # ------------------ Helpers ------------------ #
-function partition_population(population::Vector{Chromosome}, ref::Chromosome)
+function partition_population_8_subsets(population::Vector{Chromosome}, ref::Chromosome)
     # Initialize subsets
     subsets = [Vector{Chromosome}() for _ in 1:7]
 
@@ -69,6 +70,22 @@ function partition_population(population::Vector{Chromosome}, ref::Chromosome)
             push!(subsets[7], individual)
         # else
         #     push!(subsets[8], individual)
+        end
+    end
+    return subsets
+end
+function partition_population_4_subsets(population::Vector{Chromosome}, ref::Chromosome)
+    # Initialize subsets
+    subsets = [Vector{Chromosome}() for _ in 1:3]
+
+    for individual in population
+        # Determine the subset based on conditions
+        if (individual.fitness >= ref.fitness) && (individual.strain_unfitness + individual.time_unfitness >= ref.strain_unfitness + ref.time_unfitness)
+            push!(subsets[1], individual)
+        elseif (individual.fitness < ref.fitness) && (individual.strain_unfitness + individual.time_unfitness >= ref.strain_unfitness + ref.time_unfitness)
+            push!(subsets[2], individual)
+        elseif (individual.fitness >= ref.fitness) && (individual.strain_unfitness + individual.time_unfitness < ref.strain_unfitness + ref.time_unfitness)
+            push!(subsets[3], individual)
         end
     end
     return subsets

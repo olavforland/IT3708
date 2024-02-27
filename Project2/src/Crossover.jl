@@ -4,7 +4,7 @@ export two_point_crossover
 
 using ..Genetics: Chromosome
 
-function two_point_crossover(p1::Chromosome, p2::Chromosome)
+function two_point_crossover(p1::Chromosome, p2::Chromosome, n_nurses::Int)
 
     n_patients = length(p1.genotype)
 
@@ -19,8 +19,8 @@ function two_point_crossover(p1::Chromosome, p2::Chromosome)
 
         
     # Create children
-    c1 = Chromosome([0 for _ in 1:n_patients])
-    c2 = Chromosome([0 for _ in 1:n_patients])
+    c1 = Chromosome([0 for _ in 1:n_patients], n_nurses)
+    c2 = Chromosome([0 for _ in 1:n_patients], n_nurses)
 
 
     # Copy the genes from the parents
@@ -33,7 +33,6 @@ function two_point_crossover(p1::Chromosome, p2::Chromosome)
             c2.genotype[i] = p1.genotype[i]
         end
     end
-
 
     return c1, c2
 

@@ -11,7 +11,7 @@ using ..Crossover
 using ..Mutation
 using ..Selection
 using ..TSPHeuristic
-using ..VNSHeuristic: construct_solution!
+using ..VNSHeuristic: construct_solution!, improve_solution!
 using ..Utils: count_unique_individuals
 
 
@@ -26,7 +26,9 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
         # Perform routing step
         construct_solution!(problem_instance, c1)
         construct_solution!(problem_instance, c2)
-
+        
+        # improve_solution!(problem_instance, c1)
+        # improve_solution!(problem_instance, c2)
         
         # Evaluate fitness and unfitness
         compute_fitness!(c1, problem_instance), compute_fitness!(c2, problem_instance)
@@ -38,7 +40,7 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
 
         # Check if child in population
         
-        if generation % 10000 == 0
+        if generation % 1000 == 0
             best_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[1]
             println("Generation: ", generation, " Fitness: ", best_chromosome.fitness, " Time unfitness: ", best_chromosome.time_unfitness, " Strain unfitness: ", best_chromosome.strain_unfitness)
             println("Number of unique individuals: ", count_unique_individuals(population), "/", n_individuals)
@@ -87,43 +89,23 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
             p = mod1(j + delta, n_patients)
             patient = ranked_patients[p]
             
-            # chromosome_copy = Chromosome(deepcopy(chromosome.genotype), n_nurses)
-            # chromosome_copy.genotype[patient.id] = current_nurse
-
-            # construct_solution!(problem_instance, chromosome_copy)
-            # compute_unfitness!(chromosome_copy, problem_instance)
-
-            # if j == 2
-            #     println(chromosome_copy.time_unfitness, " ", chromosome_copy.strain_unfitness)
-            #     println(chromosome_copy.phenotype)
-            #     println(chromosome_copy.genotype)
-            # end
 
             chromosome.genotype[patient.id] = current_nurse
+
             construct_solution!(problem_instance, chromosome)
+            # improve_solution!(problem_instance, chromosome)
 
             compute_unfitness!(chromosome, problem_instance)
             
-            # if (chromosome_copy.time_unfitness > 0.0 || chromosome_copy.strain_unfitness > 0.0)
-            #     current_nurse += 1
-            #     prev_time_unfitness = chromosome.time_unfitness
-            #     prev_strain_unfitness = chromosome.strain_unfitness
             if (chromosome.time_unfitness > prev_time_unfitness || chromosome.strain_unfitness > prev_strain_unfitness)
                 current_nurse += 1
                 prev_time_unfitness = chromosome.time_unfitness
                 prev_strain_unfitness = chromosome.strain_unfitness
-
-                # chromosome.genotype[patient.id] = current_nurse
-
-            # else
-            #     # Add patient to the genotype
-            #     chromosome.genotype[patient.id] = current_nurse
-            #     construct_solution!(problem_instance, chromosome)
-
-            #     compute_unfitness!(chromosome, problem_instance)
             
             end
         end
+
+
         routes_most_violated = sort(1:length(chromosome.phenotype), by=p -> (chromosome.route_strain_unfitness[p], chromosome.route_time_unfitness[p]), rev=true)
 
         for nurse in routes_most_violated

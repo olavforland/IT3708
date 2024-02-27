@@ -1,11 +1,12 @@
 module VNSHeuristic
 
-export construct_solution!
+export construct_solution!, improve_solution!
 
 using Random
 using ..DataParser: ProblemInstance, Patient
 using ..Genetics: Chromosome
 
+# ---------------- Construction Heuristic ----------------
 
 function construct_solution!(instance::ProblemInstance, chromosome::Chromosome)
     for nurse in 1:instance.n_nurses
@@ -43,6 +44,89 @@ function construct_single_route(instance::ProblemInstance, patients::Vector{Pati
     return solution
 end
 
+# ---------------- Improvement Heuristic ----------------
+
+function improve_solution!(instance::ProblemInstance, chromosome::Chromosome)
+    for nurse in 1:instance.n_nurses
+        nurse_patients = findall(x -> x == nurse, chromosome.genotype)
+        # Only improve routes with more than 3 patients
+        if length(nurse_patients) <= 3
+            continue
+        end
+
+        route = improve_single_route(instance.patients[nurse_patients], instance)
+        chromosome.phenotype[nurse] = map(p -> p.id, route)
+        
+    end
+end
+
+
+function improve_single_route(route::Vector{Patient}, instance::ProblemInstance)
+    level = 1
+    max_iter = 10
+    iter = 0
+    route = variable_neighborhood_decent(route, instance, improvement_objective)
+    while (level <= 5) && (iter < max_iter)
+        
+        new_route = random_1_shift(route, level)    
+        new_route = variable_neighborhood_decent(new_route, instance, improvement_objective)
+
+        if improvement_objective(new_route, instance) < improvement_objective(route, instance)
+            level = 1
+            route = new_route
+        else
+            level += 1
+        end
+        iter += 1
+    end
+
+    return route
+
+end
+
+function variable_neighborhood_decent(route::Vector{Patient}, instance::ProblemInstance, objective::Function)
+    prev_route = nothing
+
+    max_iter = 10
+    iter = 0
+    
+    while (prev_route != map(p -> p.id, route)) && (iter < max_iter)
+        route, _ = local_1_shift(route, instance, objective)
+        prev_route = map(p -> p.id, route)
+        route = local_2_opt(route, instance, objective)
+
+        iter += 1
+
+    end
+    return route
+
+end
+
+function local_2_opt(route::Vector{Patient}, instance::ProblemInstance, objective::Function)
+    best_route = route
+    best_obj = objective(route, instance)
+
+    for i in 1:length(route)
+        for j in i+1:length(route)
+            # If j cannot precede i, skip
+            if (route[j].id, route[i].id) ∈ instance.inadmissable_presedence
+                break
+            end
+            new_route = deepcopy(route)
+
+            new_route[i:j] = reverse(new_route[i:j])
+            
+            obj = objective(new_route, instance)
+            if obj < best_obj
+                best_obj = obj
+                best_route = new_route
+            end
+        end
+    end
+
+    return best_route
+
+end
 
 # ---------------- Helpers ----------------
 
@@ -106,6 +190,25 @@ function construction_objective(route::Vector{Patient}, instance::ProblemInstanc
     end
 
     return time_violation
+end
+
+function improvement_objective(route::Vector{Patient}, instance::ProblemInstance)
+
+    travel_times = instance.travel_times
+    travel_time = 0.0
+    # Start at depot
+    prev_patient = 1
+    for patient in route
+        # Increment by one due to 1-indexing
+        travel_time += travel_times[prev_patient][patient.id + 1]
+        # Increment by one due to 1-indexing
+        prev_patient = patient.id + 1
+    end
+    # End at depot
+    travel_time += travel_times[prev_patient][1]
+
+    return travel_time
+
 end
 
 end # module

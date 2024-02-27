@@ -28,8 +28,8 @@ writepath = joinpath("solutions", "train_" * string(instance_nr) * ".json")
 # Parse the data from the file
 instance = parse_data(readpath)
 
-population = genetic_algorithm(instance, 50, 100000, 0.1, instance.n_nurses)
-# population = initialize_population(1, instance.n_nurses, instance)
+population = genetic_algorithm(instance, 30, 100000, 0.1, instance.n_nurses)
+# population = initialize_population(10, instance.n_nurses, instance)
 
 best_individual = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[1]
 

@@ -20,13 +20,17 @@ function construct_single_route(instance::ProblemInstance, patients::Vector{Pati
 
     level = 1
     
-    solution = shuffle(patients)#sort(patients, by = p -> p.start_time)
+    # Start from a random initial solution
+    solution = shuffle(patients)
+    # Perform local search
     solution, obj = local_1_shift(solution, instance, construction_objective)
-
+    # Iterate until feasibility or max level is reached
     while obj > 0 && level < 10
+        # Perform level random 1-shifts
         new_solution = random_1_shift(solution, level)
+        # Perform local search
         new_solution, new_obj = local_1_shift(new_solution, instance, construction_objective)
-        
+        # Save new solution if better
         if new_obj < obj
             level = 1
             solution = new_solution
@@ -47,13 +51,16 @@ function local_1_shift(route::Vector{Patient}, instance::ProblemInstance, object
     best_route = route
     best_obj = objective(route, instance)
     
-    
+    # Iterate through all possible 1-shifts
     for i in 1:length(route)
         for j in i+1:length(route)
+            # If j cannot precede i, skip
             if (route[j].id, route[i].id) ∈ instance.inadmissable_presedence
                 break
             end
+            # Swap nodes
             route[i], route[j] = route[j], route[i]
+            # Recalculate objective
             obj = objective(route, instance)
             if obj < best_obj
                 best_obj = obj
@@ -66,6 +73,7 @@ function local_1_shift(route::Vector{Patient}, instance::ProblemInstance, object
 end
 
 function random_1_shift(route::Vector{Patient}, level::Int)
+    # Perform level random 1-shifts 
     for _ in 1:level
         i = rand(1:length(route))
         j = rand(1:length(route))

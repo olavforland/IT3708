@@ -67,7 +67,7 @@ function improve_single_route(route::Vector{Patient}, instance::ProblemInstance)
     iter = 0
     route = variable_neighborhood_decent(route, instance, improvement_objective)
     while (level <= 5) && (iter < max_iter)
-        
+
         new_route = random_1_shift(route, level)    
         new_route = variable_neighborhood_decent(new_route, instance, improvement_objective)
 
@@ -137,13 +137,31 @@ function local_1_shift(route::Vector{Patient}, instance::ProblemInstance, object
     
     # Iterate through all possible 1-shifts
     for i in 1:length(route)
+        # Consider the cases when patient i precedes patient j
         for j in i+1:length(route)
-            # If j cannot precede i, skip
+            # If j cannot precede i, i cannot be inserted after j
             if (route[j].id, route[i].id) ∈ instance.inadmissable_presedence
                 break
             end
-            # Swap nodes
-            route[i], route[j] = route[j], route[i]
+
+            shifted_patient = splice!(route, i) # Remove the element at position j
+            insert!(route, j - 1, shifted_patient) # Insert that element at position i
+            # Recalculate objective
+            obj = objective(route, instance)
+            if obj < best_obj
+                best_obj = obj
+                best_route = route
+            end
+        end
+        # Consider the cases when patient i succeeds patient j
+        for j in i-1:-1:1
+            # If j cannot precede i, i cannot be inserted after j
+            if (route[i].id, route[j].id) ∈ instance.inadmissable_presedence
+                break
+            end
+
+            shifted_patient = splice!(route, i) # Remove the element at position j
+            insert!(route, j, shifted_patient) # Insert that element at position i
             # Recalculate objective
             obj = objective(route, instance)
             if obj < best_obj

@@ -106,8 +106,8 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
         end
 
 
+        # Find most violated routes and distribute half the patients on a new nurse
         routes_most_violated = sort(1:length(chromosome.phenotype), by=p -> (chromosome.route_strain_unfitness[p], chromosome.route_time_unfitness[p]), rev=true)
-
         for nurse in routes_most_violated
             if chromosome.route_strain_unfitness[nurse] == 0 && chromosome.route_time_unfitness[nurse] == 0
                 continue
@@ -125,8 +125,6 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
             end
             
         end
-
-
 
         # end
         # Add chromosome to population

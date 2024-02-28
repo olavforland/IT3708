@@ -7,8 +7,11 @@ include("Mutation.jl")
 include("Crossover.jl")
 include("Selection.jl")
 include("TSPHeuristic.jl")
+include("Objective.jl")
+include("LambdaInterchange.jl")
 include("VNSHeuristic.jl")
 include("GA.jl")
+
 
 using .DataParser: parse_data, Patient
 using .Genetics: Chromosome, compute_fitness!, compute_unfitness!
@@ -28,7 +31,7 @@ writepath = joinpath("solutions", "train_" * string(instance_nr) * ".json")
 # Parse the data from the file
 instance = parse_data(readpath)
 
-population = genetic_algorithm(instance, 50, 1000000, 0.3, instance.n_nurses)
+population = genetic_algorithm(instance, 30, 1000000, 0.3, instance.n_nurses)
 # population = initialize_population(1000, 10, instance)
 
 best_individual = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[1]

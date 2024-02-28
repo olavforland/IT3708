@@ -13,6 +13,7 @@ using ..Selection
 using ..TSPHeuristic
 using ..VNSHeuristic: construct_solution!, improve_solution!
 using ..Utils: count_unique_individuals
+using ..LambdaInterchange: shift_operation
 
 
 function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int, n_generations::Int, mutation_rate::Float64, n_nurses::Int)
@@ -46,6 +47,8 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
             println("Number of unique individuals: ", count_unique_individuals(population), "/", n_individuals)
             println("Number of nurses used: ", length(unique(best_chromosome.genotype)))
             println("")
+            
+            population = map(c -> shift_operation(c, problem_instance), population)
             
             #println("Child 1: ", c1.fitness, " ", c1.time_unfitness, " ", c1.strain_unfitness)
             # println("Child 2: ", c2.fitness, " ", c2.time_unfitness, " ", c2.strain_unfitness)

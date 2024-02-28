@@ -24,8 +24,8 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
         swap_mutation!(c1, mutation_rate), swap_mutation!(c2, mutation_rate)
 
         # Perform routing step
-        construct_solution!(problem_instance, c1)
-        construct_solution!(problem_instance, c2)
+        construct_solution!(problem_instance, c1, n_nurses)
+        construct_solution!(problem_instance, c2, n_nurses)
         
         # improve_solution!(problem_instance, c1)
         # improve_solution!(problem_instance, c2)
@@ -40,7 +40,7 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
 
         # Check if child in population
         
-        if generation % 1000 == 0
+        if generation % 10000 == 0
             best_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[1]
             println("Generation: ", generation, " Fitness: ", best_chromosome.fitness, " Time unfitness: ", best_chromosome.time_unfitness, " Strain unfitness: ", best_chromosome.strain_unfitness)
             println("Number of unique individuals: ", count_unique_individuals(population), "/", n_individuals)
@@ -92,39 +92,39 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
 
             chromosome.genotype[patient.id] = current_nurse
 
-            construct_solution!(problem_instance, chromosome)
+            construct_solution!(problem_instance, chromosome, n_nurses)
             # improve_solution!(problem_instance, chromosome)
 
             compute_unfitness!(chromosome, problem_instance)
             
-            if (chromosome.time_unfitness > prev_time_unfitness || chromosome.strain_unfitness > prev_strain_unfitness)
+            if (chromosome.time_unfitness > prev_time_unfitness || chromosome.strain_unfitness > prev_strain_unfitness) #&& (length(chromosome.phenotype[current_nurse]) > n_patients / n_nurses)
                 current_nurse += 1
+                current_nurse = mod1(current_nurse, n_nurses)
                 prev_time_unfitness = chromosome.time_unfitness
                 prev_strain_unfitness = chromosome.strain_unfitness
             
             end
         end
 
-
-        # Find most violated routes and distribute half the patients on a new nurse
-        routes_most_violated = sort(1:length(chromosome.phenotype), by=p -> (chromosome.route_strain_unfitness[p], chromosome.route_time_unfitness[p]), rev=true)
-        for nurse in routes_most_violated
-            if chromosome.route_strain_unfitness[nurse] == 0 && chromosome.route_time_unfitness[nurse] == 0
-                continue
-            end
-            current_nurse += 1
-            patients_sorted = sort(chromosome.phenotype[nurse], by = p -> ranked_patients[p].rank)
+        # # Find most violated routes and distribute half the patients on a new nurse
+        # routes_most_violated = sort(1:length(chromosome.phenotype), by=p -> (chromosome.route_strain_unfitness[p], chromosome.route_time_unfitness[p]), rev=true)
+        # for nurse in routes_most_violated
+        #     if chromosome.route_strain_unfitness[nurse] == 0 && chromosome.route_time_unfitness[nurse] == 0
+        #         continue
+        #     end
+        #     current_nurse += 1
+        #     patients_sorted = sort(chromosome.phenotype[nurse], by = p -> ranked_patients[p].rank)
             
-            # Assign the first half of the patients to the current nurse
-            for patient in patients_sorted[1:div(length(patients_sorted), 2)]
-                chromosome.genotype[patient] = current_nurse
-            end
+        #     # Assign the first half of the patients to the current nurse
+        #     for patient in patients_sorted[1:div(length(patients_sorted), 2)]
+        #         chromosome.genotype[patient] = current_nurse
+        #     end
 
-            if current_nurse + 1 > n_nurses
-                break
-            end
+        #     if current_nurse + 1 > n_nurses
+        #         break
+        #     end
             
-        end
+        # end
 
         # end
         # Add chromosome to population

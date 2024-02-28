@@ -8,8 +8,8 @@ using ..Genetics: Chromosome
 
 # ---------------- Construction Heuristic ----------------
 
-function construct_solution!(instance::ProblemInstance, chromosome::Chromosome)
-    for nurse in 1:instance.n_nurses
+function construct_solution!(instance::ProblemInstance, chromosome::Chromosome, n_nurses::Int)
+    for nurse in 1:n_nurses
         nurse_patients = findall(x -> x == nurse, chromosome.genotype)
         route = construct_single_route(instance, instance.patients[nurse_patients])
         chromosome.phenotype[nurse] = map(p -> p.id, route)
@@ -26,7 +26,7 @@ function construct_single_route(instance::ProblemInstance, patients::Vector{Pati
     # Perform local search
     solution, obj = local_1_shift(solution, instance, construction_objective)
     # Iterate until feasibility or max level is reached
-    while obj > 0 && level < 10
+    while obj > 0 && level < 5
         # Perform level random 1-shifts
         new_solution = random_1_shift(solution, level)
         # Perform local search
@@ -50,7 +50,7 @@ function improve_solution!(instance::ProblemInstance, chromosome::Chromosome)
     for nurse in 1:instance.n_nurses
         nurse_patients = findall(x -> x == nurse, chromosome.genotype)
         # Only improve routes with more than 3 patients
-        if length(nurse_patients) <= 3
+        if length(nurse_patients) <= 4
             continue
         end
 
@@ -80,6 +80,7 @@ function improve_single_route(route::Vector{Patient}, instance::ProblemInstance)
         iter += 1
     end
 
+
     return route
 
 end
@@ -93,6 +94,7 @@ function variable_neighborhood_decent(route::Vector{Patient}, instance::ProblemI
     while (prev_route != map(p -> p.id, route)) && (iter < max_iter)
         route, _ = local_1_shift(route, instance, objective)
         prev_route = map(p -> p.id, route)
+        
         route = local_2_opt(route, instance, objective)
 
         iter += 1

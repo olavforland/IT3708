@@ -127,31 +127,22 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
             end
         end
 
-        # # Find most violated routes and distribute half the patients on a new nurse
-        # routes_most_violated = sort(1:length(chromosome.phenotype), by=p -> (chromosome.route_strain_unfitness[p], chromosome.route_time_unfitness[p]), rev=true)
-        # for nurse in routes_most_violated
-        #     if chromosome.route_strain_unfitness[nurse] == 0 && chromosome.route_time_unfitness[nurse] == 0
-        #         continue
-        #     end
-        #     current_nurse += 1
-        #     patients_sorted = sort(chromosome.phenotype[nurse], by = p -> ranked_patients[p].rank)
-            
-        #     # Assign the first half of the patients to the current nurse
-        #     for patient in patients_sorted[1:div(length(patients_sorted), 2)]
-        #         chromosome.genotype[patient] = current_nurse
-        #     end
+        # Perform lambda shift operation
+        chromosome = lambda_shift_operation(chromosome, problem_instance)
+        # Perform lambda interchange operation
+        chromosome = lambda_interchange_operation(chromosome, problem_instance)
+        # Finally re-optimize each route with 2-opt procedure
+        for i in 1:length(chromosome.phenotype)
+            improved_route = local_2_opt(map(p -> problem_instance.patients[p], chromosome.phenotype[i]), problem_instance, total_objective)
+            chromosome.phenotype[i] = map(p -> p.id, improved_route)
+        end
 
-        #     if current_nurse + 1 > n_nurses
-        #         break
-        #     end
-            
-        # end
-
-        # end
         # Add chromosome to population
         compute_fitness!(chromosome, problem_instance)
         compute_unfitness!(chromosome, problem_instance)
         push!(population, chromosome)
+
+    
     end
     return population
 end

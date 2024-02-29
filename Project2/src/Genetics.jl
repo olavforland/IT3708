@@ -13,15 +13,17 @@ mutable struct Chromosome
     time_unfitness::Union{Float64, Nothing}
     strain_unfitness::Union{Float64, Nothing}
 
+    route_fitness::Union{Vector{Float64}, Nothing}
     route_time_unfitness::Union{Vector{Float64}, Nothing}
     route_strain_unfitness::Union{Vector{Float64}, Nothing}
 
     # Constructor that sets phenotype, fitness and unfitness to nothing by default
-    Chromosome(genotype::Vector{Int}) = new(genotype, nothing, nothing, nothing, nothing, nothing)
+    Chromosome(genotype::Vector{Int}) = new(genotype, nothing, nothing, nothing, nothing, nothing, nothing)
     Chromosome(genotype::Vector{Int}, n_nurses::Int) = new(
         genotype, 
         [Vector{Int}() for _ in 1:n_nurses], 
-        nothing, nothing, nothing, 
+        nothing, nothing, nothing,
+        [0.0 for _ in 1:n_nurses], 
         [0.0 for _ in 1:n_nurses], 
         [0.0 for _ in 1:n_nurses]
     )
@@ -33,18 +35,21 @@ end
 function compute_fitness!(chromosome::Chromosome, problem_instance::ProblemInstance)
     travel_times = problem_instance.travel_times
     travel_time = 0.0
-    for route in chromosome.phenotype
-
+    for (n, route) in enumerate(chromosome.phenotype)
+        route_travel_time = 0.0
         # Start at depot
         prev_patient = 1
         for patient in route
             # Increment by one due to 1-indexing
-            travel_time += travel_times[prev_patient][patient + 1]
+            route_travel_time += travel_times[prev_patient][patient + 1]
             # Increment by one due to 1-indexing
             prev_patient = patient + 1
         end
         # End at depot
-        travel_time += travel_times[prev_patient][1]
+        route_travel_time += travel_times[prev_patient][1]
+        chromosome.route_fitness[n] = route_travel_time
+        travel_time += route_travel_time
+
     end
 
     chromosome.fitness = travel_time

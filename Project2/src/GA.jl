@@ -11,9 +11,11 @@ using ..Crossover
 using ..Mutation
 using ..Selection
 using ..TSPHeuristic
-using ..VNSHeuristic: construct_solution!, improve_solution!
+using ..VNSHeuristic: construct_solution!, improve_solution!, local_2_opt
 using ..Utils: count_unique_individuals
-using ..LambdaInterchange: shift_operation
+using ..LambdaInterchange: lambda_shift_operation, lambda_interchange_operation
+using ..Objective
+
 
 
 function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int, n_generations::Int, mutation_rate::Float64, n_nurses::Int)
@@ -41,17 +43,26 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
 
         # Check if child in population
         
-        if generation % 10000 == 0
+        if generation % 5000 == 0
             best_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[1]
             println("Generation: ", generation, " Fitness: ", best_chromosome.fitness, " Time unfitness: ", best_chromosome.time_unfitness, " Strain unfitness: ", best_chromosome.strain_unfitness)
             println("Number of unique individuals: ", count_unique_individuals(population), "/", n_individuals)
             println("Number of nurses used: ", length(unique(best_chromosome.genotype)))
             println("")
             
-            population = map(c -> shift_operation(c, problem_instance), population)
+            # Perform lambda shift operation
+            population = map(c -> lambda_shift_operation(c, problem_instance), population)
+            # Perform lambda interchange operation
+            population = map(c -> lambda_interchange_operation(c, problem_instance), population)
+            # Finally re-optimize each route with 2-opt procedure
+            for chromosome in population
+                for i in 1:length(chromosome.phenotype)
+                    improved_route = local_2_opt(map(p -> problem_instance.patients[p], chromosome.phenotype[i]), problem_instance, total_objective)
+                    chromosome.phenotype[i] = map(p -> p.id, improved_route)
+                end
+            end
+
             
-            #println("Child 1: ", c1.fitness, " ", c1.time_unfitness, " ", c1.strain_unfitness)
-            # println("Child 2: ", c2.fitness, " ", c2.time_unfitness, " ", c2.strain_unfitness)
         end
         if in(join(child.genotype, ","), map(c -> join(c.genotype, ","), population))
             continue
@@ -59,6 +70,13 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
 
         survivor_selection!(population, child)
 
+    end
+
+    for chromosome in population
+        for i in 1:length(chromosome.phenotype)
+            improved_route = local_2_opt(map(p -> problem_instance.patients[p], chromosome.phenotype[i]), problem_instance, total_objective)
+            chromosome.phenotype[i] = map(p -> p.id, improved_route)
+        end
     end
 
     return population

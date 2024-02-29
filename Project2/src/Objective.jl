@@ -1,8 +1,12 @@
 module Objective 
 
-export time_unfitness_objective, strain_unfitness_objective, time_fitness_objective
+export time_unfitness_objective, strain_unfitness_objective, time_fitness_objective, total_objective
 
 using ..DataParser: ProblemInstance, Patient
+
+function total_objective(route::Vector{Patient}, instance::ProblemInstance)
+    return (time_unfitness_objective(route, instance), strain_unfitness_objective(route, instance), time_fitness_objective(route, instance))
+end
 
 function time_unfitness_objective(route::Vector{Patient}, instance::ProblemInstance)
 

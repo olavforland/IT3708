@@ -6,7 +6,7 @@ using ..Genetics: Chromosome
 using ..Objective: time_unfitness_objective, time_fitness_objective, strain_unfitness_objective, total_objective
 using ..Genetics: compute_fitness!, compute_unfitness!
 using ..DataParser: ProblemInstance, Patient
-using ..VNSHeuristic: construct_single_route, local_2_opt
+using ..VNSHeuristic: construct_single_route, local_2_opt!
 
 function lambda_shift_operation(chromosome::Chromosome, problem_instance::ProblemInstance)
 
@@ -118,8 +118,8 @@ function evaluate_lambda_improvement!(chromosome::Chromosome, i::Int, j::Int, pr
         (fitness_i + fitness_j < prev_fitness || time_unfitness_i + time_unfitness_j < prev_time_unfitness || strain_unfitness_i + strain_unfitness_j < prev_strain_unfitness)
 
         # Improve promising routes with 2-opt
-        route_i = local_2_opt(route_i, problem_instance, total_objective)
-        route_j = local_2_opt(route_j, problem_instance, total_objective)
+        local_2_opt!(route_i, problem_instance, total_objective)
+        local_2_opt!(route_j, problem_instance, total_objective)
 
         # Add routes to best chromosome
         chromosome.phenotype[i] = map(p -> p.id, route_i)

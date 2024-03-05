@@ -15,6 +15,7 @@ include("LargeNeighborhoodSearch.jl")
 include("GA.jl")
 
 
+
 using .DataParser: parse_data, Patient
 using .Genetics: Chromosome, compute_fitness!, compute_unfitness!
 using .GA: initialize_population, genetic_algorithm
@@ -25,6 +26,7 @@ using .Selection: tournament_selection, survivor_selection!
 using .LambdaInterchange: lambda_shift_operation
 using .LargeNeighborhoodSearch: tsp_all_routes!
 # push!(LOAD_PATH, pwd())
+using .TSPHeuristic: savelsbergh_heuristic
 
 instance_nr = 9
 
@@ -50,4 +52,14 @@ write_chromosome_to_file(best_individual, writepath)
 
 
 
+#Just testing heuristic.
+"""
 
+best_individual.phenotype = [Vector{Int}() for _ in 1:instance.n_nurses]
+
+#for each nurse, generate a solution using the savelsbergh heuristic
+for nurse in unique(best_individual.genotype)
+    best_individual.phenotype[nurse] = savelsbergh_heuristic(instance, best_individual, nurse)
+end
+
+"""

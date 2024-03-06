@@ -67,17 +67,24 @@ function tsp_all_routes!(chromosome::Chromosome, problem_instance::ProblemInstan
     end
 
 
-    chromosome.phenotype = routes
+    new_chromosome = deepcopy(chromosome)
+
+    new_chromosome.phenotype = routes
     for (nurse, route) in enumerate(routes)
         for patient in route
-            chromosome.genotype[patient] = nurse
+            new_chromosome.genotype[patient] = nurse
         end
     end
 
-    compute_fitness!(chromosome, problem_instance)
-    compute_unfitness!(chromosome, problem_instance)
+    compute_fitness!(new_chromosome, problem_instance)
+    compute_unfitness!(new_chromosome, problem_instance)
 
-    # println("Finished tsp_all_routes")
+    if new_chromosome.fitness < chromosome.fitness && 
+        new_chromosome.time_unfitness < chromosome.time_unfitness && 
+        new_chromosome.strain_unfitness < chromosome.strain_unfitness
+
+        chromosome = new_chromosome
+    end
 
 end
 

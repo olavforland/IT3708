@@ -51,6 +51,22 @@ function local_2_opt!(route::Vector{Patient}, instance::ProblemInstance, objecti
                 route[i:j] = reverse(route[i:j])
             end
         end
+        for j in i-1:-1:1
+            # If j cannot precede i, i cannot be inserted after j
+            if (route[i].id, route[j].id) ∈ instance.inadmissable_presedence
+                break
+            end
+
+            route[i:j] = reverse(route[i:j])
+            
+            obj = objective(route, instance)
+            if obj < best_obj
+                best_obj = obj
+            else
+                # Change back
+                route[i:j] = reverse(route[i:j])
+            end
+        end
     end
 
     return best_obj

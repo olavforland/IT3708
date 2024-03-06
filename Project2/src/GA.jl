@@ -5,6 +5,8 @@ export initialize_population, genetic_algorithm
 
 using Random
 using Printf
+using Base.Threads
+using Distributed
 
 using ..DataParser
 using ..Genetics
@@ -25,12 +27,11 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
 
     # Direct initialization
     t0 = time()  # Capture start time
-    println("\nInitializing population\n")
+    println("\nInitializing population with " * string(nthreads()) * " threads\n")
     population = initialize_population(n_individuals, n_nurses, problem_instance)
     initialization_time = time() - t0  # Calculate elapsed time
 
 
-    construction_time = 0.0
     improvement_time = 0.0
     lambda_shift_time = 0.0
     lambda_interchange_time = 0.0
@@ -54,50 +55,50 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
         #     improve_solution!(problem_instance, child)
         # end
         
-        if generation % 1000 == 0
+        if generation % 5000 == 0
             best_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[1]
-            println("Generation: ", generation, " Fitness: ", best_chromosome.fitness, " Time unfitness: ", best_chromosome.time_unfitness, " Strain unfitness: ", best_chromosome.strain_unfitness)
+            top5_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[5]
+            top10_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[10]
+            worst_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[end]
+            println("-------------- Generation: ", generation, "-------------- ")
+            println("Top 1 - Fitness: ", @sprintf("%.2f", best_chromosome.fitness), " Time unfitness: ", @sprintf("%.2f", best_chromosome.time_unfitness), " Strain unfitness: ", @sprintf("%.2f", best_chromosome.strain_unfitness))
+            println("Top 5 - Fitness: ", @sprintf("%.2f", top5_chromosome.fitness), " Time unfitness: ", @sprintf("%.2f", top5_chromosome.time_unfitness), " Strain unfitness: ", @sprintf("%.2f", top5_chromosome.strain_unfitness))
+            println("Top 10 - Fitness: ", @sprintf("%.2f", top10_chromosome.fitness), " Time unfitness: ", @sprintf("%.2f", top10_chromosome.time_unfitness), " Strain unfitness: ", @sprintf("%.2f", top10_chromosome.strain_unfitness))
+            println("Top 30 - Fitness: ", @sprintf("%.2f", worst_chromosome.fitness), " Time unfitness: ", @sprintf("%.2f", worst_chromosome.time_unfitness), " Strain unfitness: ", @sprintf("%.2f", worst_chromosome.strain_unfitness))
             println("Number of unique individuals: ", count_unique_individuals(population), "/", n_individuals)
             println("Number of nurses used: ", length(unique(best_chromosome.genotype)))
-            println("")
+            println("---------------------------------------------\n")
         end
 
-        # Check if in population    
-        if in(join(child.genotype, ","), map(c -> join(c.genotype, ","), population))
-            continue
-        end
+
         
-        if generation % 5000 == 0
+        if generation % 10000 == 0
             println("\nPerforming large neighborhood search\n")
-
-            # Perform large neighborhood TSP
-            for individual in population
-                tsp_all_routes!(individual, problem_instance)
-            end
             
-            lambda_shift_time += @elapsed begin
-                # Perform lambda shift operation
-                population = map(c -> lambda_shift_operation(c, problem_instance), population)
-            end
-            lambda_interchange_time += @elapsed begin
-                # Perform lambda interchange operation
-                population = map(c -> lambda_interchange_operation(c, problem_instance), population)
-            end
+            @threads for i in eachindex(population)
+                # Perform large neighborhood TSP
+                tsp_all_routes!(population[i], problem_instance)
 
+                lambda_shift_time += @elapsed begin
+                    population[i] = lambda_shift_operation(population[i], problem_instance)
+                end
+                lambda_interchange_time += @elapsed begin
+                    population[i] = lambda_interchange_operation(population[i], problem_instance)
+                end
 
-            # Finally re-optimize each route with 2-opt procedure
-            for chromosome in population
-                for i in 1:length(chromosome.phenotype)
-                    route = map(p -> problem_instance.patients[p], chromosome.phenotype[i])
+                # Finally re-optimize each route with 2-opt procedure
+                for j in 1:length(population[i].phenotype)
+                    route = map(p -> problem_instance.patients[p], population[i].phenotype[j])
                     local_2_opt!(route, problem_instance, total_objective) # Improve
-                    chromosome.phenotype[i] = map(p -> p.id, route)
+                    population[i].phenotype[j] = map(p -> p.id, route)
                 end
             end
 
-
         end
-        
-        survivor_selection!(population, child)
+        # Check if in population    
+        if join(child.genotype, ",") ∉  map(c -> join(c.genotype, ","), population)
+            survivor_selection!(population, child)
+        end
         
     end
     
@@ -110,7 +111,6 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
     end
     total_time = time() - start_time
     println("\nInitialization time: ", @sprintf("%.2f", initialization_time), " s (", @sprintf("%.2f", initialization_time / total_time * 100), "% of total time)")
-    println("Construction time: ", @sprintf("%.2f", construction_time), " s (", @sprintf("%.2f", construction_time / total_time * 100), "% of total time)")
     println("Improvement time: ", @sprintf("%.2f", improvement_time), " s (", @sprintf("%.2f", improvement_time / total_time * 100), "% of total time)")
     println("Lambda shift time: ", @sprintf("%.2f", lambda_shift_time), " s (", @sprintf("%.2f", lambda_shift_time / total_time * 100), "% of total time)")
     println("Lambda interchange time: ", @sprintf("%.2f", lambda_interchange_time), " s (", @sprintf("%.2f", lambda_interchange_time / total_time * 100), "% of total time)")
@@ -132,12 +132,13 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
     # Initial nurse areas
     nurse_areas = create_initial_nurse_areas(n_nurses, n_patients)
 
-    shuffled_patients = shuffle(1:length(problem_instance.patients))
-    for i in 1:n_individuals
+    shuffled_patients = shuffle(1:length(patients))
+
+    @threads for i in 1:n_individuals
         delta = shuffled_patients[i]
         chromosome = Chromosome([0 for _ in 1:n_patients], n_nurses)
         chromosome.phenotype = [Vector{Int}() for _ in 1:n_nurses]
-        current_nurse = 1
+        current_nurse = nurse_areas[delta]
 
         prev_time_unfitness = 0.0
         prev_strain_unfitness = 0.0
@@ -157,16 +158,26 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
             # improve_solution!(problem_instance, chromosome)
             
             
-            if (chromosome.time_unfitness > prev_time_unfitness || chromosome.strain_unfitness > prev_strain_unfitness) #&& (length(chromosome.phenotype[current_nurse]) > n_patients / n_nurses)
+            if (chromosome.time_unfitness > 0.0 || chromosome.strain_unfitness > 0.0) #&& (length(chromosome.phenotype[current_nurse]) > n_patients / n_nurses)
 
-                compute_unfitness!(chromosome, problem_instance)
-                compute_fitness!(chromosome, problem_instance)
-
+                
                 current_nurse += 1
                 current_nurse = mod1(current_nurse, n_nurses)
+                
+                # If violation not too bad, we accept the infeasible solution into the population
+                if chromosome.time_unfitness / chromosome.route_fitness[mod1(current_nurse-1, n_nurses)] < 0.15 && chromosome.strain_unfitness / patient.demand < 0.15
+                    continue
+                end
+                # If not, we undo the change making the individual infeasible
+                chromosome.genotype[patient.id] = current_nurse
+                construct_solution!(problem_instance, chromosome, n_nurses)
 
-                prev_time_unfitness = chromosome.time_unfitness
-                prev_strain_unfitness = chromosome.strain_unfitness
+                # Recompute (un)fitness
+                compute_unfitness!(chromosome, problem_instance)
+                compute_fitness!(chromosome, problem_instance)
+                
+                # prev_time_unfitness = chromosome.time_unfitness
+                # prev_strain_unfitness = chromosome.strain_unfitness
             
             end
         end
@@ -177,11 +188,10 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
         chromosome = lambda_interchange_operation(chromosome, problem_instance)
         # Finally re-optimize each route with 2-opt procedure
         for i in 1:length(chromosome.phenotype)
-            route = map(p -> problem_instance.patients[p], chromosome.phenotype[i])
+            route = map(p -> patients[p], chromosome.phenotype[i])
             local_2_opt!(route, problem_instance, total_objective) # Improve
             chromosome.phenotype[i] = map(p -> p.id, route)
         end
-        
 
         # Add chromosome to population
         compute_fitness!(chromosome, problem_instance)

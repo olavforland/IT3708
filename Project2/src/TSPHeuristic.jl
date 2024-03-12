@@ -78,7 +78,7 @@ function savelsbergh_heuristic(instance::ProblemInstance, chromosome::Chromosome
         optimal_insertion_places = criterion_one_first_phase(nurse_patients, travel_times, depot_coords, nurse_capacity, depot_return_time, route)
 
         if isnothing(optimal_insertion_places)
-            break
+            return [p.id for p in route]
             # TODO: TOCONSIDER
             # Not sure if it should break or return current path at this point.
         end

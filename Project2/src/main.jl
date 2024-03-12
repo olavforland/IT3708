@@ -5,11 +5,12 @@ include("Genetics.jl")
 include("Utils.jl")
 include("Mutation.jl")
 include("Crossover.jl")
-include("Selection.jl")
-include("TSPHeuristic.jl")
 include("Objective.jl")
 include("LocalSearch.jl")
 include("VNSHeuristic.jl")
+include("VismaCrossover.jl")
+include("Selection.jl")
+include("TSPHeuristic.jl")
 include("LambdaInterchange.jl")
 include("LargeNeighborhoodSearch.jl")
 include("GA.jl")
@@ -27,6 +28,8 @@ using .LambdaInterchange: lambda_shift_operation
 using .LargeNeighborhoodSearch: tsp_all_routes!
 # push!(LOAD_PATH, pwd())
 using .TSPHeuristic: savelsbergh_heuristic
+using .Objective: total_objective
+using .VismaCrossover: visma_crossover
 
 instance_nr = 9
 

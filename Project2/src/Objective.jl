@@ -1,4 +1,4 @@
-module Objective 
+module Objective
 
 export time_unfitness_objective, strain_unfitness_objective, time_fitness_objective, total_objective
 
@@ -16,7 +16,7 @@ function time_unfitness_objective(route::Vector{Patient}, instance::ProblemInsta
     prev_patient = 1
     for patient in route
         # Add travel time
-        elapsed_time += instance.travel_times[prev_patient][patient.id + 1]
+        elapsed_time += instance.travel_times[prev_patient][patient.id+1]
         # If arrive early, wait
         elapsed_time += max(patient.start_time - elapsed_time, 0)
         # If arrive late, add to time violation
@@ -38,7 +38,7 @@ function strain_unfitness_objective(route::Vector{Patient}, instance::ProblemIns
     end
 
     return max(nurse_strain - instance.nurse_capacity, 0)
-    
+
 end
 
 function time_fitness_objective(route::Vector{Patient}, instance::ProblemInstance)
@@ -49,7 +49,7 @@ function time_fitness_objective(route::Vector{Patient}, instance::ProblemInstanc
     prev_patient = 1
     for patient in route
         # Increment by one due to 1-indexing
-        travel_time += travel_times[prev_patient][patient.id + 1]
+        travel_time += travel_times[prev_patient][patient.id+1]
         # Increment by one due to 1-indexing
         prev_patient = patient.id + 1
     end
@@ -59,5 +59,6 @@ function time_fitness_objective(route::Vector{Patient}, instance::ProblemInstanc
     return travel_time
 
 end
+
 
 end # module

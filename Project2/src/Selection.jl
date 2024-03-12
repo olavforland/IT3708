@@ -4,7 +4,6 @@ export tournament_selection, survivor_selection!
 
 using ..Genetics: Chromosome
 
-
 function tournament_selection(population::Vector{Chromosome}, n::Int)
     selected = Vector{Chromosome}()
     for _ in 1:n
@@ -38,7 +37,7 @@ function survivor_selection!(population::Vector{Chromosome}, child::Chromosome)
 
             # Find the index of this chromosome in the population
             worst_index = findfirst(x -> x == worst_chromosome, population)
-            
+
             if worst_index !== nothing
                 population[worst_index] = child
                 break
@@ -46,6 +45,8 @@ function survivor_selection!(population::Vector{Chromosome}, child::Chromosome)
         end
     end
 end
+
+
 
 # ------------------ Helpers ------------------ #
 function partition_population_8_subsets(population::Vector{Chromosome}, ref::Chromosome)
@@ -68,8 +69,8 @@ function partition_population_8_subsets(population::Vector{Chromosome}, ref::Chr
             push!(subsets[6], individual)
         elseif (individual.fitness >= ref.fitness) && (individual.strain_unfitness < ref.strain_unfitness) && (individual.time_unfitness < ref.time_unfitness)
             push!(subsets[7], individual)
-        # else
-        #     push!(subsets[8], individual)
+            # else
+            #     push!(subsets[8], individual)
         end
     end
     return subsets

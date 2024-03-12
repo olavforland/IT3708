@@ -27,17 +27,17 @@ end
 
 function survivor_selection!(population::Vector{Chromosome}, child::Chromosome)
     subsets = partition_population_8_subsets(population, child)
-    count = 0
     for subset in subsets
         if !isempty(subset)
-            count += 1
             # Sort the subset based on fitness, strain unfitness and time unfitness
-            sort!(subset, by=x -> (x.time_unfitness, x.strain_unfitness, x.fitness), rev=true)
-            # The worst chromosome is now the first in the sorted subset
-            worst_chromosome = subset[1]
+
+            # sort!(subset, by=x -> (x.time_unfitness, x.strain_unfitness, x.fitness), rev=true)
+            # # The worst chromosome is now the first in the sorted subset
+            # worst_chromosome = subset[1]
+            worst_fitness = maximum(x -> (x.time_unfitness, x.strain_unfitness, x.fitness), subset)
 
             # Find the index of this chromosome in the population
-            worst_index = findfirst(x -> x == worst_chromosome, population)
+            worst_index = findfirst(x -> (x.time_unfitness, x.strain_unfitness, x.fitness) == worst_fitness, population)
             
             if worst_index !== nothing
                 population[worst_index] = child

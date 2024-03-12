@@ -11,6 +11,10 @@ function tsp_all_routes!(chromosome::Chromosome, problem_instance::ProblemInstan
 
     # println("Starting tsp_all_routes")
 
+    # Evaluate fitness and unfitness
+    compute_fitness!(chromosome, problem_instance)
+    compute_unfitness!(chromosome, problem_instance)
+
     complete_route = Vector{Int}()
 
 

@@ -38,12 +38,36 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
 
     for generation in 1:n_generations
         p1, p2 = tournament_selection(population, 2)
-        c1, c2 = two_point_crossover(p1, p2, n_nurses)
+        c1, c2 = two_point_crossover(p1, p2, problem_instance)
+        # c1, c2 = visma_crossover(p1, p2, n_nurses, problem_instance)
         swap_mutation!(c1, mutation_rate), swap_mutation!(c2, mutation_rate)
+        # insert_mutation!(c1, mutation_rate), insert_mutation!(c2, mutation_rate)
 
         # Perform routing step
         construct_solution!(problem_instance, c1, n_nurses)
         construct_solution!(problem_instance, c2, n_nurses)
+        
+
+        # tsp_all_routes!(c1, problem_instance)
+        # c1 = lambda_shift_operation(c1, problem_instance)
+        # c1 = lambda_interchange_operation(c1, problem_instance)
+        for j in 1:length(c1.phenotype)
+            route = map(p -> problem_instance.patients[p], c1.phenotype[j])
+            local_2_opt!(route, problem_instance, total_objective) # Improve
+            c1.phenotype[j] = map(p -> p.id, route)
+        end
+
+        # tsp_all_routes!(c2, problem_instance)
+        
+        # c2 = lambda_shift_operation(c2, problem_instance)
+        # c2 = lambda_interchange_operation(c2, problem_instance)
+
+        for j in 1:length(c2.phenotype)
+            route = map(p -> problem_instance.patients[p], c2.phenotype[j])
+            local_2_opt!(route, problem_instance, total_objective) # Improve
+            c2.phenotype[j] = map(p -> p.id, route)
+        end
+
 
         # Evaluate fitness and unfitness
         compute_fitness!(c1, problem_instance), compute_fitness!(c2, problem_instance)
@@ -55,7 +79,7 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
         #     improve_solution!(problem_instance, child)
         # end
         
-        if generation % 5000 == 0
+        if generation % 1000 == 0
             best_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[1]
             top5_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[5]
             top10_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[10]
@@ -128,7 +152,6 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
 
     patients = sort(problem_instance.patients, by = p -> p.id)
     ranked_patients = sort(problem_instance.patients, by = p -> p.rank)
-
     # Initial nurse areas
     nurse_areas = create_initial_nurse_areas(n_nurses, n_patients)
 
@@ -136,12 +159,10 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
 
     @threads for i in 1:n_individuals
         delta = shuffled_patients[i]
+        current_nurse = nurse_areas[delta]
+        # println("current_nurse: ", current_nurse)
         chromosome = Chromosome([0 for _ in 1:n_patients], n_nurses)
         chromosome.phenotype = [Vector{Int}() for _ in 1:n_nurses]
-        current_nurse = nurse_areas[delta]
-
-        prev_time_unfitness = 0.0
-        prev_strain_unfitness = 0.0
 
         for j in 1:n_patients
             

@@ -1,6 +1,6 @@
 module VNSHeuristic
 
-export construct_solution!, improve_solution!
+export construct_solution!, improve_solution!, construct_single_route, improve_single_route
 
 using Random
 using ..DataParser: ProblemInstance, Patient

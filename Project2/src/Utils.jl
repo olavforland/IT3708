@@ -27,6 +27,15 @@ function write_chromosome_to_file(chromosome::Chromosome, filename::String)
     end
 end
 
+# Serialize and write the entire population to file
+function write_population_to_file(population::Vector{Chromosome}, filename::String)
+    population_dict = [chromosome_to_dict(chromosome) for chromosome in population]
+    json_str = JSON.json(population_dict)
+    open(filename, "w") do file
+        write(file, json_str)
+    end
+end
+
 
 function count_unique_individuals(population::Vector{Chromosome})
     # Convert genotype to hashable string

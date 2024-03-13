@@ -4,6 +4,7 @@ include("DataParser.jl")
 include("Genetics.jl")
 include("Utils.jl")
 include("Mutation.jl")
+include("Similarity.jl")
 include("Selection.jl")
 include("TSPHeuristic.jl")
 include("Objective.jl")
@@ -12,7 +13,6 @@ include("VNSHeuristic.jl")
 include("Crossover.jl")
 include("LambdaInterchange.jl")
 include("LargeNeighborhoodSearch.jl")
-include("Similarity.jl")
 include("GA.jl")
 
 
@@ -29,7 +29,7 @@ using .LargeNeighborhoodSearch: tsp_all_routes!
 # push!(LOAD_PATH, pwd())
 using .TSPHeuristic: savelsbergh_heuristic
 
-instance_nr = 2
+instance_nr = 9
 
 # Path to the JSON file with data
 readpath = joinpath("data", "train_" * string(instance_nr) * ".json")

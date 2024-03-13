@@ -13,7 +13,7 @@ using ..Genetics
 using ..Similarity: create_similarity_matrix
 using ..Crossover
 using ..Mutation
-using ..Selection: tournament_selection, survivor_selection!
+using ..Selection: tournament_selection, similarity_selection, survivor_selection!
 using ..TSPHeuristic
 using ..VNSHeuristic: construct_solution!, improve_solution!, local_2_opt!, improve_single_route
 using ..Utils: count_unique_individuals
@@ -40,7 +40,11 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
     similarity_matrix = create_similarity_matrix(population)
 
     for generation in 1:n_generations
-        p1, p2 = tournament_selection(population, 2)
+        if generation % 10 == 0
+            p1, p2 = similarity_selection(population, similarity_matrix)
+        else
+            p1, p2 = tournament_selection(population, 2)
+        end
         c1, c2 = two_point_crossover(p1, p2, problem_instance)
         # c1, c2 = visma_crossover(p1, p2, n_nurses, problem_instance)
         swap_mutation!(c1, mutation_rate), swap_mutation!(c2, mutation_rate)
@@ -120,6 +124,8 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
                     population[i].phenotype[j] = map(p -> p.id, route)
                 end
             end
+
+            similarity_matrix = create_similarity_matrix(population)
 
         end
         # Check if in population    

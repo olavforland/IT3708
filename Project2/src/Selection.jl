@@ -1,6 +1,6 @@
 module Selection
 
-export tournament_selection, survivor_selection!
+export tournament_selection, similarity_selection, survivor_selection!
 
 using ..Genetics: Chromosome
 using ..Similarity: update_similarity_matrix!
@@ -24,6 +24,13 @@ function tournament_selection(population::Vector{Chromosome}, n::Int)
     end
     return selected
 end
+
+function similarity_selection(population::Vector{Chromosome}, similarity_matrix::Matrix{Float64})
+    min_ind = argmin(similarity_matrix)
+    row, col = Tuple(CartesianIndices(similarity_matrix)[min_ind])
+    return population[row], population[col]
+end
+
 
 function survivor_selection!(population::Vector{Chromosome}, child::Chromosome, similarity_matrix::Matrix{Float64})
     subsets = partition_population_8_subsets(population, child)

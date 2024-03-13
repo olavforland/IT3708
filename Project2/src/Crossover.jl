@@ -19,7 +19,6 @@ function two_point_crossover(p1::Chromosome, p2::Chromosome, problem_instance::P
     ranked_patients = sort(problem_instance.patients, by = p -> p.rank)
     ranked_ids = map(p -> p.id, ranked_patients)
 
-
     # Ensure point1 < point2
     if point1 > point2
         point1, point2 = point2, point1

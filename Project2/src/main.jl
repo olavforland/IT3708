@@ -18,7 +18,7 @@ include("GA.jl")
 
 using .DataParser: parse_data, Patient
 using .Genetics: Chromosome, compute_fitness!, compute_unfitness!
-using .GA: initialize_population, genetic_algorithm
+using .GA: initialize_population, genetic_algorithm, island_algorithm
 using .Utils: write_chromosome_to_file, write_population_to_file
 using .Mutation: swap_mutation!
 using .Crossover: two_point_crossover
@@ -28,7 +28,7 @@ using .LargeNeighborhoodSearch: tsp_all_routes!
 # push!(LOAD_PATH, pwd())
 using .TSPHeuristic: savelsbergh_heuristic
 
-instance_nr = 2
+instance_nr = 9
 
 # Path to the JSON file with data
 readpath = joinpath("data", "train_" * string(instance_nr) * ".json")
@@ -37,8 +37,10 @@ writepath = joinpath("solutions", "train_" * string(instance_nr) * ".json")
 # Parse the data from the file
 instance = parse_data(readpath)
 
-# population = initialize_population(30, instance.n_nurses, instance)
-population = genetic_algorithm(instance, 30, 50000, 0.3, instance.n_nurses)
+initial_population = initialize_population(30, instance.n_nurses, instance)
+# population = island_algorithm(4, 15, 100000, 20000, 0, instance, 0.3)
+
+population = genetic_algorithm(initial_population, instance, 30, 500000, 0.3, instance.n_nurses)
 
 # for individual in population
 #     tsp_all_routes!(individual, instance)

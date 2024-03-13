@@ -16,7 +16,7 @@ function variable_neighborhood_decent!(route::Vector{Patient}, instance::Problem
 
     new_obj = Inf
     
-    while improved && (iter < max_iter)
+    while improved #&& (iter < max_iter)
         obj = local_1_shift!(route, instance, objective)
         prev_route = map(p -> p.id, route)
 
@@ -41,14 +41,14 @@ function local_2_opt!(route::Vector{Patient}, instance::ProblemInstance, objecti
                 break
             end
 
-            route[i:j] = reverse(route[i:j])
+            reverse!(route[i:j])
             
             obj = objective(route, instance)
             if obj < best_obj
                 best_obj = obj
             else
                 # Change back
-                route[i:j] = reverse(route[i:j])
+                reverse!(route[i:j])
             end
         end
         for j in i-1:-1:1
@@ -57,14 +57,14 @@ function local_2_opt!(route::Vector{Patient}, instance::ProblemInstance, objecti
                 break
             end
 
-            route[i:j] = reverse(route[i:j])
+            reverse!(route[i:j])
             
             obj = objective(route, instance)
             if obj < best_obj
                 best_obj = obj
             else
                 # Change back
-                route[i:j] = reverse(route[i:j])
+                reverse!(route[i:j])
             end
         end
     end

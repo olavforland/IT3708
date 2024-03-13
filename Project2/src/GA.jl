@@ -10,6 +10,7 @@ using Distributed
 
 using ..DataParser
 using ..Genetics
+using ..Similarity: create_similarity_matrix
 using ..Crossover
 using ..Mutation
 using ..Selection: tournament_selection, survivor_selection!
@@ -36,7 +37,7 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
     lambda_shift_time = 0.0
     lambda_interchange_time = 0.0
 
-    similarity_matrix = 
+    similarity_matrix = create_similarity_matrix(population)
 
     for generation in 1:n_generations
         p1, p2 = tournament_selection(population, 2)
@@ -123,7 +124,7 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
         end
         # Check if in population    
         if join(child.genotype, ",") ∉ map(c -> join(c.genotype, ","), population)
-            survivor_selection!(population, child)
+            survivor_selection!(population, child, similarity_matrix)
         end
 
     end
@@ -165,8 +166,6 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
         # println("current_nurse: ", current_nurse)
         chromosome = Chromosome([0 for _ in 1:n_patients], n_nurses)
         chromosome.phenotype = [Vector{Int}() for _ in 1:n_nurses]
-
-        chromosome.id = i
 
         for j in 1:n_patients
 
@@ -223,6 +222,10 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
         compute_unfitness!(chromosome, problem_instance)
         chromosome.patient_sets = [Set(route) for route in filter(!isempty, chromosome.phenotype)]
         push!(population, chromosome)
+    end
+
+    for (i, individual) in enumerate(population)
+        individual.id = i
     end
     return population
 end

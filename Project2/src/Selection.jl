@@ -3,7 +3,7 @@ module Selection
 export tournament_selection, survivor_selection!
 
 using ..Genetics: Chromosome
-
+using ..Similarity: update_similarity_matrix!
 
 function tournament_selection(population::Vector{Chromosome}, n::Int)
     selected = Vector{Chromosome}()
@@ -25,7 +25,7 @@ function tournament_selection(population::Vector{Chromosome}, n::Int)
     return selected
 end
 
-function survivor_selection!(population::Vector{Chromosome}, child::Chromosome)
+function survivor_selection!(population::Vector{Chromosome}, child::Chromosome, similarity_matrix::Matrix{Float64})
     subsets = partition_population_8_subsets(population, child)
     for subset in subsets
         if !isempty(subset)
@@ -38,8 +38,10 @@ function survivor_selection!(population::Vector{Chromosome}, child::Chromosome)
 
             # Find the index of this chromosome in the population
             worst_index = findfirst(x -> (x.time_unfitness, x.strain_unfitness, x.fitness) == worst_fitness, population)
-            
+
             if worst_index !== nothing
+                child.id = population[worst_index].id
+                update_similarity_matrix!(similarity_matrix, child, population)
                 population[worst_index] = child
                 break
             end
@@ -68,8 +70,8 @@ function partition_population_8_subsets(population::Vector{Chromosome}, ref::Chr
             push!(subsets[6], individual)
         elseif (individual.fitness >= ref.fitness) && (individual.strain_unfitness < ref.strain_unfitness) && (individual.time_unfitness < ref.time_unfitness)
             push!(subsets[7], individual)
-        # else
-        #     push!(subsets[8], individual)
+            # else
+            #     push!(subsets[8], individual)
         end
     end
     return subsets

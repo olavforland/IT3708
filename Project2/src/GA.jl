@@ -36,6 +36,8 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
     lambda_shift_time = 0.0
     lambda_interchange_time = 0.0
 
+    similarity_matrix = 
+
     for generation in 1:n_generations
         p1, p2 = tournament_selection(population, 2)
         c1, c2 = two_point_crossover(p1, p2, problem_instance)
@@ -46,7 +48,7 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
         # Perform routing step
         construct_solution!(problem_instance, c1, n_nurses)
         construct_solution!(problem_instance, c2, n_nurses)
-        
+
 
         # tsp_all_routes!(c1, problem_instance)
         # c1 = lambda_shift_operation(c1, problem_instance)
@@ -58,7 +60,7 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
         end
 
         # tsp_all_routes!(c2, problem_instance)
-        
+
         # c2 = lambda_shift_operation(c2, problem_instance)
         # c2 = lambda_interchange_operation(c2, problem_instance)
 
@@ -72,13 +74,13 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
         # Evaluate fitness and unfitness
         compute_fitness!(c1, problem_instance), compute_fitness!(c2, problem_instance)
         compute_unfitness!(c1, problem_instance), compute_unfitness!(c2, problem_instance)
-        
+
         # Get favoured offspring  based on fitness
         child = c1.fitness < c2.fitness ? c1 : c2
         # improvement_time += @elapsed begin
         #     improve_solution!(problem_instance, child)
         # end
-        
+
         if generation % 1000 == 0
             best_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[1]
             top5_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[5]
@@ -95,10 +97,10 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
         end
 
 
-        
+
         if generation % 10000 == 0
             println("\nPerforming large neighborhood search\n")
-            
+
             @threads for i in eachindex(population)
                 # Perform large neighborhood TSP
                 tsp_all_routes!(population[i], problem_instance)
@@ -120,13 +122,13 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
 
         end
         # Check if in population    
-        if join(child.genotype, ",") ∉  map(c -> join(c.genotype, ","), population)
+        if join(child.genotype, ",") ∉ map(c -> join(c.genotype, ","), population)
             survivor_selection!(population, child)
         end
-        
+
     end
-    
-    
+
+
     for chromosome in population
         for i in 1:length(chromosome.phenotype)
             route = map(p -> problem_instance.patients[p], chromosome.phenotype[i])
@@ -140,7 +142,7 @@ function genetic_algorithm(problem_instance::ProblemInstance, n_individuals::Int
     println("Lambda interchange time: ", @sprintf("%.2f", lambda_interchange_time), " s (", @sprintf("%.2f", lambda_interchange_time / total_time * 100), "% of total time)")
     println("")
 
-    
+
     return population
 end
 
@@ -150,8 +152,8 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
 
     n_patients = length(problem_instance.patients)
 
-    patients = sort(problem_instance.patients, by = p -> p.id)
-    ranked_patients = sort(problem_instance.patients, by = p -> p.rank)
+    patients = sort(problem_instance.patients, by=p -> p.id)
+    ranked_patients = sort(problem_instance.patients, by=p -> p.rank)
     # Initial nurse areas
     nurse_areas = create_initial_nurse_areas(n_nurses, n_patients)
 
@@ -164,12 +166,14 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
         chromosome = Chromosome([0 for _ in 1:n_patients], n_nurses)
         chromosome.phenotype = [Vector{Int}() for _ in 1:n_nurses]
 
+        chromosome.id = i
+
         for j in 1:n_patients
-            
+
             # Current patient
             p = mod1(j + delta, n_patients)
             patient = ranked_patients[p]
-            
+
             chromosome.genotype[patient.id] = current_nurse
 
             construct_solution!(problem_instance, chromosome, n_nurses)
@@ -177,16 +181,16 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
             compute_unfitness!(chromosome, problem_instance)
             compute_fitness!(chromosome, problem_instance)
             # improve_solution!(problem_instance, chromosome)
-            
-            
+
+
             if (chromosome.time_unfitness > 0.0 || chromosome.strain_unfitness > 0.0) #&& (length(chromosome.phenotype[current_nurse]) > n_patients / n_nurses)
 
-                
+
                 current_nurse += 1
                 current_nurse = mod1(current_nurse, n_nurses)
-                
+
                 # If violation not too bad, we accept the infeasible solution into the population
-                if chromosome.time_unfitness / chromosome.route_fitness[mod1(current_nurse-1, n_nurses)] < 0.15 && chromosome.strain_unfitness / patient.demand < 0.15
+                if chromosome.time_unfitness / chromosome.route_fitness[mod1(current_nurse - 1, n_nurses)] < 0.15 && chromosome.strain_unfitness / patient.demand < 0.15
                     continue
                 end
                 # If not, we undo the change making the individual infeasible
@@ -196,10 +200,10 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
                 # Recompute (un)fitness
                 compute_unfitness!(chromosome, problem_instance)
                 compute_fitness!(chromosome, problem_instance)
-                
+
                 # prev_time_unfitness = chromosome.time_unfitness
                 # prev_strain_unfitness = chromosome.strain_unfitness
-            
+
             end
         end
 
@@ -217,6 +221,7 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
         # Add chromosome to population
         compute_fitness!(chromosome, problem_instance)
         compute_unfitness!(chromosome, problem_instance)
+        chromosome.patient_sets = [Set(route) for route in filter(!isempty, chromosome.phenotype)]
         push!(population, chromosome)
     end
     return population

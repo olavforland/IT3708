@@ -12,6 +12,7 @@ include("VNSHeuristic.jl")
 include("Crossover.jl")
 include("LambdaInterchange.jl")
 include("LargeNeighborhoodSearch.jl")
+include("Similarity.jl")
 include("GA.jl")
 
 

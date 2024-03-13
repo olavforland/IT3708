@@ -14,6 +14,10 @@ include("LambdaInterchange.jl")
 include("LargeNeighborhoodSearch.jl")
 include("GA.jl")
 
+using Random
+using Printf
+using Base.Threads
+using Distributed
 
 
 using .DataParser: parse_data, Patient
@@ -38,7 +42,8 @@ writepath = joinpath("solutions", "train_" * string(instance_nr) * ".json")
 instance = parse_data(readpath)
 
 initial_population = initialize_population(30, instance.n_nurses, instance)
-# population = island_algorithm(4, 15, 100000, 20000, 0, instance, 0.3)
+
+# population = island_algorithm(1, 30, 100000, 20000, 3, instance, 0.3)
 
 population = genetic_algorithm(initial_population, instance, 30, 500000, 0.3, instance.n_nurses)
 

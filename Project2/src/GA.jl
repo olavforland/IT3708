@@ -34,6 +34,10 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
     for generation in 1:n_generations
         p1, p2 = tournament_selection(population, 2)
         c1, c2 = two_point_crossover(p1, p2, problem_instance)
+        # c11, c22 = n_point_crossover(p1, p2, problem_instance, 2)   
+
+        # println(c1, c11)
+
         # c1, c2 = visma_crossover(p1, p2, n_nurses, problem_instance)
         swap_mutation!(c1, mutation_rate), swap_mutation!(c2, mutation_rate)
         # insert_mutation!(c1, mutation_rate), insert_mutation!(c2, mutation_rate)
@@ -46,25 +50,25 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
         #tsp_all_routes!(c1, problem_instance)
         # c1 = lambda_shift_operation(c1, problem_instance)
         # c1 = lambda_interchange_operation(c1, problem_instance)
-        # for j in 1:length(c1.phenotype)
-        #     route = map(p -> problem_instance.patients[p], c1.phenotype[j])
-        #     local_2_opt!(route, problem_instance, total_objective) # Improve
-        #     c1.phenotype[j] = map(p -> p.id, route)
-        # end
+        for j in 1:length(c1.phenotype)
+            route = map(p -> problem_instance.patients[p], c1.phenotype[j])
+            local_2_opt!(route, problem_instance, total_objective) # Improve
+            c1.phenotype[j] = map(p -> p.id, route)
+        end
 
-        improve_solution!(problem_instance, c1)
-        improve_solution!(problem_instance, c2)
+        # improve_solution!(problem_instance, c1)
+        # improve_solution!(problem_instance, c2)
 
         #tsp_all_routes!(c2, problem_instance)
         
         # c2 = lambda_shift_operation(c2, problem_instance)
         # c2 = lambda_interchange_operation(c2, problem_instance)
 
-        # for j in 1:length(c2.phenotype)
-        #     route = map(p -> problem_instance.patients[p], c2.phenotype[j])
-        #     local_2_opt!(route, problem_instance, total_objective) # Improve
-        #     c2.phenotype[j] = map(p -> p.id, route)
-        # end
+        for j in 1:length(c2.phenotype)
+            route = map(p -> problem_instance.patients[p], c2.phenotype[j])
+            local_2_opt!(route, problem_instance, total_objective) # Improve
+            c2.phenotype[j] = map(p -> p.id, route)
+        end
 
 
         # Evaluate fitness and unfitness
@@ -178,16 +182,16 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
             patient = ranked_patients[p]
             
             chromosome.genotype[patient.id] = current_nurse
-            push!(chromosome.phenotype[current_nurse], patient.id)
-
-            # Construct route
-            route = construct_single_route(problem_instance, patients[chromosome.phenotype[current_nurse]])
+            
+            construct_solution!(problem_instance, chromosome, n_nurses)
             
             # Improve route
-            local_2_opt!(route, problem_instance, total_objective) # Improve
-            
-            # Assign route
-            chromosome.phenotype[current_nurse] = map(p -> p.id, route)
+            for k in 1:length(chromosome.phenotype)
+                route = map(p -> patients[p], chromosome.phenotype[k])
+                local_2_opt!(route, problem_instance, total_objective) # Improve
+                chromosome.phenotype[k] = map(p -> p.id, route)
+            end
+        
 
             compute_unfitness!(chromosome, problem_instance)
             compute_fitness!(chromosome, problem_instance)
@@ -199,27 +203,26 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
                 current_nurse += 1
                 current_nurse = mod1(current_nurse, n_nurses)
                 
-                # If violation not too bad, we accept the infeasible solution into the population
-                if chromosome.time_unfitness / chromosome.route_fitness[mod1(current_nurse-1, n_nurses)] < 0.15 && chromosome.strain_unfitness / patient.demand < 0.15
-                    continue
-                end
+                # # If violation not too bad, we accept the infeasible solution into the population
+                # if chromosome.time_unfitness / chromosome.route_fitness[mod1(current_nurse-1, n_nurses)] < 0.15 && chromosome.strain_unfitness / patient.demand < 0.15
+                #     continue
+                # end
                 
-                # If not, we undo the change making the individual infeasible
-                chromosome.genotype[patient.id] = current_nurse
+                # # If not, we undo the change making the individual infeasible
+                # chromosome.genotype[patient.id] = current_nurse
                 
-                # Construct route
-                nurse_patients = findall(x -> x == current_nurse, chromosome.genotype)
-                route = construct_single_route(problem_instance, patients[nurse_patients])
-                
-                # Assign route
-                chromosome.phenotype[current_nurse] = map(p -> p.id, route)
+                # construct_solution!(problem_instance, chromosome, n_nurses)
+            
+                # # Improve route
+                # for k in 1:length(chromosome.phenotype)
+                #     route = map(p -> patients[p], chromosome.phenotype[k])
+                #     local_2_opt!(route, problem_instance, total_objective) # Improve
+                #     chromosome.phenotype[k] = map(p -> p.id, route)
+                # end
 
                 # Recompute (un)fitness
                 compute_unfitness!(chromosome, problem_instance)
                 compute_fitness!(chromosome, problem_instance)
-                
-                # prev_time_unfitness = chromosome.time_unfitness
-                # prev_strain_unfitness = chromosome.strain_unfitness
             
             end
         end

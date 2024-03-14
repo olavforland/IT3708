@@ -10,9 +10,10 @@ using Distributed
 
 using ..DataParser
 using ..Genetics
+using ..Similarity: create_similarity_matrix
 using ..Crossover
 using ..Mutation
-using ..Selection: tournament_selection, survivor_selection!
+using ..Selection: tournament_selection, similarity_selection, survivor_selection!
 using ..TSPHeuristic
 using ..VNSHeuristic: construct_solution!, construct_single_route, improve_solution!, local_2_opt!, local_3_opt!, improve_single_route
 using ..Utils: count_unique_individuals
@@ -31,11 +32,16 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
     lambda_shift_time = 0.0
     lambda_interchange_time = 0.0
 
-    for generation in 1:n_generations
-        # println("Generation", generation)
-        p1, p2 = tournament_selection(population, 2)
-        c1, c2 = crossover_op(p1, p2, problem_instance)
+    similarity_matrix = create_similarity_matrix(population)
 
+    for generation in 1:n_generations
+
+        if generation % 10 == 0
+            p1, p2 = similarity_selection(population, similarity_matrix)
+        else
+            p1, p2 = tournament_selection(population, 2)
+        end
+        c1, c2 = crossover_op(p1, p2, problem_instance)
         # c1, c2 = visma_crossover(p1, p2, n_nurses, problem_instance)
         swap_mutation!(c1, mutation_rate), swap_mutation!(c2, mutation_rate)
         # insert_mutation!(c1, mutation_rate), insert_mutation!(c2, mutation_rate)
@@ -43,9 +49,6 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
         # Perform routing step
         construct_solution!(problem_instance, c1, n_nurses)
         construct_solution!(problem_instance, c2, n_nurses)
-        
-        # c1 = improve_solution!(problem_instance, c1)
-        # c2 = improve_solution!(problem_instance, c2)
 
         #tsp_all_routes!(c1, problem_instance)
         # c1 = lambda_shift_operation(c1, problem_instance)
@@ -81,14 +84,16 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
         # Evaluate fitness and unfitness
         compute_fitness!(c1, problem_instance), compute_fitness!(c2, problem_instance)
         compute_unfitness!(c1, problem_instance), compute_unfitness!(c2, problem_instance)
-        
+
         # Get favoured offspring  based on fitness
         child = c1.fitness < c2.fitness ? c1 : c2
         # improvement_time += @elapsed begin
         #     improve_solution!(problem_instance, child)
         # end
+
         
         if generation % 1000 == 0 && verbose > 0
+
             best_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[1]
             top5_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[5]
             top10_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[10]
@@ -104,12 +109,13 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
         end
 
 
-        
+
         if generation % 10000 == 0
             if verbose > 0
                 println("\nPerforming large neighborhood search\n")
             end
             
+
             @threads for i in eachindex(population)
                 # Perform large neighborhood TSP
                 population[i] = tsp_all_routes!(population[i], problem_instance)
@@ -129,15 +135,17 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
                 end
             end
 
+            similarity_matrix = create_similarity_matrix(population)
+
         end
         # Check if in population    
-        if join(child.genotype, ",") ∉  map(c -> join(c.genotype, ","), population)
-            survivor_selection!(population, child)
+        if join(child.genotype, ",") ∉ map(c -> join(c.genotype, ","), population)
+            survivor_selection!(population, child, similarity_matrix)
         end
-        
+
     end
-    
-    
+
+
     for chromosome in population
         for i in 1:length(chromosome.phenotype)
             route = map(p -> problem_instance.patients[p], chromosome.phenotype[i])
@@ -153,7 +161,7 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
     #     println("")
     # end
 
-    
+
     return population
 end
 
@@ -168,8 +176,8 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
 
     n_patients = length(problem_instance.patients)
 
-    patients = sort(problem_instance.patients, by = p -> p.id)
-    ranked_patients = sort(problem_instance.patients, by = p -> p.rank)
+    patients = sort(problem_instance.patients, by=p -> p.id)
+    ranked_patients = sort(problem_instance.patients, by=p -> p.rank)
     # Initial nurse areas
     nurse_areas = create_initial_nurse_areas(n_nurses, n_patients)
 
@@ -183,11 +191,11 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
         chromosome.phenotype = [Vector{Int}() for _ in 1:n_nurses]
 
         for j in 1:n_patients
-            
+
             # Current patient
             p = mod1(j + delta, n_patients)
             patient = ranked_patients[p]
-            
+
             chromosome.genotype[patient.id] = current_nurse
             
             construct_solution!(problem_instance, chromosome, n_nurses)
@@ -202,35 +210,17 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
 
             compute_unfitness!(chromosome, problem_instance)
             compute_fitness!(chromosome, problem_instance)
-            
-            
+
             if (chromosome.time_unfitness > 0.0 || chromosome.strain_unfitness > 0.0) #&& (length(chromosome.phenotype[current_nurse]) > n_patients / n_nurses)
 
-                
+
                 current_nurse += 1
                 current_nurse = mod1(current_nurse, n_nurses)
-                
-                # # If violation not too bad, we accept the infeasible solution into the population
-                # if chromosome.time_unfitness / chromosome.route_fitness[mod1(current_nurse-1, n_nurses)] < 0.15 && chromosome.strain_unfitness / patient.demand < 0.15
-                #     continue
-                # end
-                
-                # # If not, we undo the change making the individual infeasible
-                # chromosome.genotype[patient.id] = current_nurse
-                
-                # construct_solution!(problem_instance, chromosome, n_nurses)
-            
-                # # Improve route
-                # for k in 1:length(chromosome.phenotype)
-                #     route = map(p -> patients[p], chromosome.phenotype[k])
-                #     local_2_opt!(route, problem_instance, total_objective) # Improve
-                #     chromosome.phenotype[k] = map(p -> p.id, route)
-                # end
+
 
                 # Recompute (un)fitness
                 compute_unfitness!(chromosome, problem_instance)
                 compute_fitness!(chromosome, problem_instance)
-            
             end
         end
 
@@ -249,10 +239,15 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
         # Add chromosome to population
         compute_fitness!(chromosome, problem_instance)
         compute_unfitness!(chromosome, problem_instance)
+        chromosome.patient_sets = [Set(route) for route in filter(!isempty, chromosome.phenotype)]
         push!(population, chromosome)
     end
 
     println("Finished initializing population\n")
+
+    for (i, individual) in enumerate(population)
+        individual.id = i
+    end
 
     return population
 end

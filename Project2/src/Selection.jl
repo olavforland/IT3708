@@ -1,9 +1,9 @@
 module Selection
 
-export tournament_selection, survivor_selection!
+export tournament_selection, similarity_selection, survivor_selection!
 
 using ..Genetics: Chromosome
-
+using ..Similarity: update_similarity_matrix!
 
 function tournament_selection(population::Vector{Chromosome}, n::Int)
     selected = Vector{Chromosome}()
@@ -25,8 +25,15 @@ function tournament_selection(population::Vector{Chromosome}, n::Int)
     return selected
 end
 
-function survivor_selection!(population::Vector{Chromosome}, child::Chromosome)
-    subsets = partition_population_4_subsets(population, child)
+function similarity_selection(population::Vector{Chromosome}, similarity_matrix::Matrix{Float64})
+    min_ind = argmin(similarity_matrix)
+    row, col = Tuple(CartesianIndices(similarity_matrix)[min_ind])
+    return population[row], population[col]
+end
+
+
+function survivor_selection!(population::Vector{Chromosome}, child::Chromosome, similarity_matrix::Matrix{Float64})
+    subsets = partition_population_8_subsets(population, child)
     for subset in subsets
         if !isempty(subset)
             # Sort the subset based on fitness, strain unfitness and time unfitness
@@ -38,8 +45,10 @@ function survivor_selection!(population::Vector{Chromosome}, child::Chromosome)
 
             # Find the index of this chromosome in the population
             worst_index = findfirst(x -> (x.time_unfitness, x.strain_unfitness, x.fitness) == worst_fitness, population)
-            
+
             if worst_index !== nothing
+                child.id = population[worst_index].id
+                update_similarity_matrix!(similarity_matrix, child, population)
                 population[worst_index] = child
                 break
             end
@@ -68,8 +77,8 @@ function partition_population_8_subsets(population::Vector{Chromosome}, ref::Chr
             push!(subsets[6], individual)
         elseif (individual.fitness >= ref.fitness) && (individual.strain_unfitness < ref.strain_unfitness) && (individual.time_unfitness < ref.time_unfitness)
             push!(subsets[7], individual)
-        # else
-        #     push!(subsets[8], individual)
+            # else
+            #     push!(subsets[8], individual)
         end
     end
     return subsets

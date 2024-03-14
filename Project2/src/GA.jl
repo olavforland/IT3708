@@ -10,7 +10,7 @@ using Distributed
 
 using ..DataParser
 using ..Genetics
-using ..Similarity: create_similarity_matrix
+using ..Similarity: create_similarity_matrix, similarity_child_everyone
 using ..Crossover
 using ..Mutation
 using ..Selection: tournament_selection, similarity_selection, survivor_selection!
@@ -23,7 +23,7 @@ using ..LargeNeighborhoodSearch: tsp_all_routes!
 
 
 
-function genetic_algorithm(initial_population::Vector{Chromosome}, problem_instance::ProblemInstance, n_individuals::Int, n_generations::Int, mutation_rate::Float64, crossover_op::Function, n_nurses::Int, verbose::Int=1)
+function genetic_algorithm(initial_population::Vector{Chromosome}, problem_instance::ProblemInstance, n_individuals::Int, n_generations::Int, mutation_rate::Float64, crossover_op::Function, n_nurses::Int, lns_frequency::Int=10000, verbose::Int=1, print_frequency::Int=1000)
     start_time = time()  # Capture start time    
 
     population = deepcopy(initial_population)
@@ -32,68 +32,65 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
     lambda_shift_time = 0.0
     lambda_interchange_time = 0.0
 
-    similarity_matrix = create_similarity_matrix(population)
+    # similarity_matrix = create_similarity_matrix(population)
 
     for generation in 1:n_generations
 
-        if generation % 10 == 0
-            p1, p2 = similarity_selection(population, similarity_matrix)
-        else
+        n_offspring = 7 * n_individuals
+
+        offspring = Vector{Chromosome}()
+
+            
+        # Generate n_offspring children
+        @threads for i in 1:n_offspring
+
+
             p1, p2 = tournament_selection(population, 2)
+            # Use visma crossover 15% of the time, otherwise randomly select uniform, 1-point, two-point or three-point crossover
+            if rand() < 0.15
+                c1, c2 = visma_crossover(p1, p2, n_nurses, problem_instance)
+            else
+                c1, c2 = crossover_op(rand([0, 1, 2, 3]))(p1, p2, problem_instance)
+            end
+
+            # Mutate
+            swap_mutation!(c1, mutation_rate), swap_mutation!(c2, mutation_rate)
+            insert_mutation!(c1, mutation_rate), insert_mutation!(c2, mutation_rate)
+    
+            # Perform routing step
+            construct_solution!(problem_instance, c1, n_nurses)
+            construct_solution!(problem_instance, c2, n_nurses)
+    
+            # Improve routes
+            for j in 1:length(c1.phenotype)
+                route = map(p -> problem_instance.patients[p], c1.phenotype[j])
+                local_2_opt!(route, problem_instance, total_objective) # Improve
+                # local_3_opt!(route, problem_instance, total_objective) # Improve
+                c1.phenotype[j] = map(p -> p.id, route)
+            end
+    
+            for j in 1:length(c2.phenotype)
+                route = map(p -> problem_instance.patients[p], c2.phenotype[j])
+                local_2_opt!(route, problem_instance, total_objective) # Improve
+                # local_3_opt!(route, problem_instance, total_objective) # Improve
+                c2.phenotype[j] = map(p -> p.id, route)
+            end
+    
+    
+            # Evaluate fitness and unfitness
+            compute_fitness!(c1, problem_instance), compute_fitness!(c2, problem_instance)
+            compute_unfitness!(c1, problem_instance), compute_unfitness!(c2, problem_instance)
+    
+            # Get favoured offspring  based on fitness
+            child = c1.fitness < c2.fitness ? c1 : c2
+
+            # Push to offspring
+            push!(offspring, child)
         end
-        c1, c2 = crossover_op(p1, p2, problem_instance)
-        # c1, c2 = visma_crossover(p1, p2, n_nurses, problem_instance)
-        swap_mutation!(c1, mutation_rate), swap_mutation!(c2, mutation_rate)
-        # insert_mutation!(c1, mutation_rate), insert_mutation!(c2, mutation_rate)
 
-        # Perform routing step
-        construct_solution!(problem_instance, c1, n_nurses)
-        construct_solution!(problem_instance, c2, n_nurses)
-
-        #tsp_all_routes!(c1, problem_instance)
-        # c1 = lambda_shift_operation(c1, problem_instance)
-        # c1 = lambda_interchange_operation(c1, problem_instance)
-        
-        # c1 = lambda_shift_operation(c1, problem_instance)
-        # c2 = lambda_shift_operation(c2, problem_instance)
-
-        for j in 1:length(c1.phenotype)
-            route = map(p -> problem_instance.patients[p], c1.phenotype[j])
-            local_2_opt!(route, problem_instance, total_objective) # Improve
-            local_3_opt!(route, problem_instance, total_objective) # Improve
-            c1.phenotype[j] = map(p -> p.id, route)
-        end
-
-        # improve_solution!(problem_instance, c1)
-        # improve_solution!(problem_instance, c2)
-
-        #tsp_all_routes!(c2, problem_instance)
-        
-        # c2 = lambda_shift_operation(c2, problem_instance)
-        # c2 = lambda_interchange_operation(c2, problem_instance)
-
-
-        for j in 1:length(c2.phenotype)
-            route = map(p -> problem_instance.patients[p], c2.phenotype[j])
-            local_2_opt!(route, problem_instance, total_objective) # Improve
-            local_3_opt!(route, problem_instance, total_objective) # Improve
-            c2.phenotype[j] = map(p -> p.id, route)
-        end
-
-
-        # Evaluate fitness and unfitness
-        compute_fitness!(c1, problem_instance), compute_fitness!(c2, problem_instance)
-        compute_unfitness!(c1, problem_instance), compute_unfitness!(c2, problem_instance)
-
-        # Get favoured offspring  based on fitness
-        child = c1.fitness < c2.fitness ? c1 : c2
-        # improvement_time += @elapsed begin
-        #     improve_solution!(problem_instance, child)
-        # end
 
         
-        if generation % 1000 == 0 && verbose > 0
-
+        if generation % print_frequency == 0 && verbose > 0
             best_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[1]
             top5_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[5]
             top10_chromosome = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[10]
@@ -110,7 +107,7 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
 
 
 
-        if generation % 10000 == 0
+        if generation % lns_frequency == 0
             if verbose > 0
                 println("\nPerforming large neighborhood search\n")
             end
@@ -135,13 +132,50 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
                 end
             end
 
-            similarity_matrix = create_similarity_matrix(population)
+            # similarity_matrix = create_similarity_matrix(population)
 
         end
-        # Check if in population    
-        if join(child.genotype, ",") ∉ map(c -> join(c.genotype, ","), population)
-            survivor_selection!(population, child, similarity_matrix)
+        # # Check if in population    
+        # if join(child.genotype, ",") ∉ map(c -> join(c.genotype, ","), population)
+        #     survivor_selection!(population, child, similarity_matrix)
+        # end
+
+
+        # Make similar offspring compete
+        similarity_matrix = create_similarity_matrix(offspring)
+        while length(offspring) > n_individuals * 3
+            
+            # Randomly select individual
+            ind = rand(1:length(offspring))
+            # Select most similar individual
+            min_ind = argmax(similarity_matrix[1:end .!= ind, ind])
+
+            # Remove both children from offspring
+            c1 = splice!(offspring, ind)
+            c2 = splice!(offspring, ind < min_ind ? min_ind - 1 : min_ind)
+
+            # Pick survivor
+            child = c1.fitness < c2.fitness ? c1 : c2
+            dead_ind = c1.fitness < c2.fitness ? min_ind : ind
+
+            push!(offspring, child)
+
+            # Remove row and column from similarity matrix for dead child
+            similarity_matrix = similarity_matrix[1:end .!= dead_ind, 1:end .!= dead_ind]
+
         end
+        # Take the n_individuals best individuals
+        # population = sort(offspring, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[1:n_individuals]
+        
+        # Select survivors
+        for child in offspring
+            if join(child.genotype, ",") ∉ map(c -> join(c.genotype, ","), population)
+                survivor_selection!(population, child, similarity_matrix)
+            end
+        end
+
+        # population = offspring
+
 
     end
 
@@ -149,17 +183,11 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
     for chromosome in population
         for i in 1:length(chromosome.phenotype)
             route = map(p -> problem_instance.patients[p], chromosome.phenotype[i])
+            local_2_opt!(route, problem_instance, total_objective) # Improve
             chromosome.phenotype[i] = map(p -> p.id, route)
         end
     end
-    # total_time = time() - start_time
-    # if verbose > 0
-    #     println("\nInitialization time: ", @sprintf("%.2f", initialization_time), " s (", @sprintf("%.2f", initialization_time / total_time * 100), "% of total time)")
-    #     println("Improvement time: ", @sprintf("%.2f", improvement_time), " s (", @sprintf("%.2f", improvement_time / total_time * 100), "% of total time)")
-    #     println("Lambda shift time: ", @sprintf("%.2f", lambda_shift_time), " s (", @sprintf("%.2f", lambda_shift_time / total_time * 100), "% of total time)")
-    #     println("Lambda interchange time: ", @sprintf("%.2f", lambda_interchange_time), " s (", @sprintf("%.2f", lambda_interchange_time / total_time * 100), "% of total time)")
-    #     println("")
-    # end
+
 
 
     return population
@@ -200,22 +228,23 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
             
             construct_solution!(problem_instance, chromosome, n_nurses)
             
-            # # Improve route
-            # for k in 1:length(chromosome.phenotype)
-            #     route = map(p -> patients[p], chromosome.phenotype[k])
-            #     local_2_opt!(route, problem_instance, total_objective) # Improve
-            #     chromosome.phenotype[k] = map(p -> p.id, route)
-            # end
-        
-
             compute_unfitness!(chromosome, problem_instance)
             compute_fitness!(chromosome, problem_instance)
+        
+            # Improve route
+            for k in 1:length(chromosome.phenotype)
+                route = map(p -> patients[p], chromosome.phenotype[k])
+                local_2_opt!(route, problem_instance, total_objective) # Improve
+                chromosome.phenotype[k] = map(p -> p.id, route)
+            end
+
 
             if (chromosome.time_unfitness > 0.0 || chromosome.strain_unfitness > 0.0) #&& (length(chromosome.phenotype[current_nurse]) > n_patients / n_nurses)
 
 
                 current_nurse += 1
                 current_nurse = mod1(current_nurse, n_nurses)
+
 
 
                 # Recompute (un)fitness
@@ -253,7 +282,7 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
 end
 
 
-function island_algorithm(n_islands::Int, n_individuals::Int, n_generations::Int, exchange_frequency::Int, n_exchange_individuals::Int, problem_instance::ProblemInstance, mutation_rate::Float64, verbose::Int=1)
+function island_algorithm(n_islands::Int, n_individuals::Int, n_generations::Int, exchange_frequency::Int, n_exchange_individuals::Int, problem_instance::ProblemInstance, mutation_rate::Float64, lns_frequency::Int=10000, verbose::Int=1)
     
     n_nurses = problem_instance.n_nurses
 
@@ -280,13 +309,17 @@ function island_algorithm(n_islands::Int, n_individuals::Int, n_generations::Int
 
         @threads for j in 1:n_islands
             # Perform genetic algorithm on each island
-            islands[j] = genetic_algorithm(islands[j], problem_instance, n_individuals, exchange_frequency, mutation_rate, n_point_crossover(j == n_islands ? 0 : j), n_nurses, 0)
+            islands[j] = genetic_algorithm(islands[j], problem_instance, n_individuals, exchange_frequency, mutation_rate, n_point_crossover, n_nurses, lns_frequency, 0)
         end
 
+        visited = Set{Int}()
         # Exchange individuals between islands
         for j in 1:n_islands
             # Next island
             next = mod1(j + 1, n_islands)
+            while next in visited
+                next = mod1(next + 1, n_islands)
+            end
             # Exchange n_exchange_individuals random individuals
             for k in 1:n_exchange_individuals
                 # Remove random individual from current island
@@ -294,6 +327,7 @@ function island_algorithm(n_islands::Int, n_individuals::Int, n_generations::Int
                 # Add to next island
                 push!(islands[next], exchange_individual)
             end
+            push!(visited, next)
         end
 
     end
@@ -309,7 +343,7 @@ function island_algorithm(n_islands::Int, n_individuals::Int, n_generations::Int
     population = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[1:n_individuals]
     
     # Perform genetic algorithm on merged population
-    population = genetic_algorithm(population, problem_instance, n_individuals, floor(Int, n_generations/2), mutation_rate, n_point_crossover(2), n_nurses, verbose)
+    population = genetic_algorithm(population, problem_instance, n_individuals, floor(Int, n_generations/2), mutation_rate, n_point_crossover, n_nurses, verbose)
 
     return population
 end

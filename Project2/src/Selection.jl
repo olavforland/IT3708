@@ -47,8 +47,8 @@ function survivor_selection!(population::Vector{Chromosome}, child::Chromosome, 
             worst_index = findfirst(x -> (x.time_unfitness, x.strain_unfitness, x.fitness) == worst_fitness, population)
 
             if worst_index !== nothing
-                child.id = population[worst_index].id
-                update_similarity_matrix!(similarity_matrix, child, population)
+                # child.id = population[worst_index].id
+                # update_similarity_matrix!(similarity_matrix, child, population)
                 population[worst_index] = child
                 break
             end
@@ -59,7 +59,7 @@ end
 # ------------------ Helpers ------------------ #
 function partition_population_8_subsets(population::Vector{Chromosome}, ref::Chromosome)
     # Initialize subsets
-    subsets = [Vector{Chromosome}() for _ in 1:7]
+    subsets = [Vector{Chromosome}() for _ in 1:8]
 
     for individual in population
         # Determine the subset based on conditions
@@ -77,8 +77,8 @@ function partition_population_8_subsets(population::Vector{Chromosome}, ref::Chr
             push!(subsets[6], individual)
         elseif (individual.fitness >= ref.fitness) && (individual.strain_unfitness < ref.strain_unfitness) && (individual.time_unfitness < ref.time_unfitness)
             push!(subsets[7], individual)
-            # else
-            #     push!(subsets[8], individual)
+        else
+            push!(subsets[8], individual)
         end
     end
     return subsets

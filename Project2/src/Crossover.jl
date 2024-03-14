@@ -166,11 +166,18 @@ function visma_crossover(p1::Chromosome, p2::Chromosome, n_nurses::Int, instance
         for nurse in nurses_p1
             if nurse != curr_nurse
                 c1.genotype[patient] = nurse
-                # construct_solution!(instance, c1, n_nurses)
+                construct_solution!(instance, c1, n_nurses)
 
-                nurse_patients = findall(x -> x == nurse, c1.genotype)
-                route = construct_single_route(instance, instance.patients[nurse_patients])
+
+                route = map(p -> instance.patients[p], c1.phenotype[nurse])
                 local_2_opt!(route, instance, total_objective) # Improve
+                # local_3_opt!(route, problem_instance, total_objective) # Improve
+                c1.phenotype[nurse] = map(p -> p.id, route)
+
+                # nurse_patients = findall(x -> x == nurse, c1.genotype)
+                # route = construct_single_route(instance, instance.patients[nurse_patients])
+                
+                # local_2_opt!(route, instance, total_objective) # Improve
 
                 obj = total_objective(route, instance)
                 if obj < best_obj
@@ -193,8 +200,16 @@ function visma_crossover(p1::Chromosome, p2::Chromosome, n_nurses::Int, instance
             if nurse != curr_nurse
                 c2.genotype[patient] = nurse
 
-                nurse_patients = findall(x -> x == nurse, c2.genotype)
-                route = construct_single_route(instance, instance.patients[nurse_patients])
+                construct_solution!(instance, c2, n_nurses)
+
+                route = map(p -> instance.patients[p], c2.phenotype[nurse])
+                local_2_opt!(route, instance, total_objective) # Improve
+                # local_3_opt!(route, problem_instance, total_objective) # Improve
+                c2.phenotype[nurse] = map(p -> p.id, route)
+
+                # nurse_patients = findall(x -> x == nurse, c2.genotype)
+                # route = construct_single_route(instance, instance.patients[nurse_patients])
+
 
                 obj = total_objective(route, instance)
                 if obj < best_obj

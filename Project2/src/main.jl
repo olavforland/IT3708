@@ -26,7 +26,7 @@ using .Genetics: Chromosome, compute_fitness!, compute_unfitness!
 using .GA: initialize_population, genetic_algorithm, island_algorithm
 using .Utils: write_chromosome_to_file, write_population_to_file
 using .Mutation: swap_mutation!
-using .Crossover: two_point_crossover
+using .Crossover: two_point_crossover, n_point_crossover
 using .Selection: tournament_selection, survivor_selection!
 using .LambdaInterchange: lambda_shift_operation
 using .LargeNeighborhoodSearch: tsp_all_routes!
@@ -43,10 +43,10 @@ writepath = joinpath("solutions", "train_" * string(instance_nr) * ".json")
 instance = parse_data(readpath)
 
 initial_population = initialize_population(30, instance.n_nurses, instance)
+population = genetic_algorithm(initial_population, instance, 30, 50000, 0.9, n_point_crossover, instance.n_nurses, 100, 1, 10)
 
-population = island_algorithm(4, 30, 50000, 2000, 0, instance, 0.6)
+# population = island_algorithm(4, 30, 50000, 10000, 2, instance, 0.3, 5000)
 
-# population = genetic_algorithm(initial_population, instance, 30, 50000, 0.3, two_point_crossover, instance.n_nurses)
 
 # for individual in population
 #     tsp_all_routes!(individual, instance)

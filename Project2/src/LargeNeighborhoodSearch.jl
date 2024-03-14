@@ -89,6 +89,7 @@ function tsp_all_routes!(chromosome::Chromosome, problem_instance::ProblemInstan
 
         chromosome = new_chromosome
     end
+    return chromosome
 
 end
 

@@ -63,8 +63,8 @@ function improve_solution!(instance::ProblemInstance, chromosome::Chromosome)
 
         route = improve_single_route(instance.patients[nurse_patients], instance)
         chromosome.phenotype[nurse] = map(p -> p.id, route)
-        
     end
+    return chromosome
 end
 
 
@@ -83,8 +83,6 @@ function improve_single_route(route::Vector{Patient}, instance::ProblemInstance)
         obj = variable_neighborhood_decent!(new_route, instance, total_objective)
 
         if obj < best_obj
-            # println("Old Objective: ", best_obj)
-            # println("New objective: ", obj)
             level = 1
             best_route = deepcopy(new_route)
         else

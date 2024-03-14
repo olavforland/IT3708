@@ -14,7 +14,7 @@ using ..Crossover
 using ..Mutation
 using ..Selection: tournament_selection, survivor_selection!
 using ..TSPHeuristic
-using ..VNSHeuristic: construct_solution!, construct_single_route, improve_solution!, local_2_opt!, improve_single_route
+using ..VNSHeuristic: construct_solution!, construct_single_route, improve_solution!, local_2_opt!, local_3_opt!, improve_single_route
 using ..Utils: count_unique_individuals
 using ..LambdaInterchange: lambda_shift_operation, lambda_interchange_operation
 using ..Objective
@@ -22,7 +22,7 @@ using ..LargeNeighborhoodSearch: tsp_all_routes!
 
 
 
-function genetic_algorithm(initial_population::Vector{Chromosome}, problem_instance::ProblemInstance, n_individuals::Int, n_generations::Int, mutation_rate::Float64, n_nurses::Int, verbose::Int=1)
+function genetic_algorithm(initial_population::Vector{Chromosome}, problem_instance::ProblemInstance, n_individuals::Int, n_generations::Int, mutation_rate::Float64, crossover_op::Function, n_nurses::Int, verbose::Int=1)
     start_time = time()  # Capture start time    
 
     population = deepcopy(initial_population)
@@ -32,11 +32,9 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
     lambda_interchange_time = 0.0
 
     for generation in 1:n_generations
+        # println("Generation", generation)
         p1, p2 = tournament_selection(population, 2)
-        c1, c2 = two_point_crossover(p1, p2, problem_instance)
-        # c11, c22 = n_point_crossover(p1, p2, problem_instance, 2)   
-
-        # println(c1, c11)
+        c1, c2 = crossover_op(p1, p2, problem_instance)
 
         # c1, c2 = visma_crossover(p1, p2, n_nurses, problem_instance)
         swap_mutation!(c1, mutation_rate), swap_mutation!(c2, mutation_rate)
@@ -46,13 +44,20 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
         construct_solution!(problem_instance, c1, n_nurses)
         construct_solution!(problem_instance, c2, n_nurses)
         
+        # c1 = improve_solution!(problem_instance, c1)
+        # c2 = improve_solution!(problem_instance, c2)
 
         #tsp_all_routes!(c1, problem_instance)
         # c1 = lambda_shift_operation(c1, problem_instance)
         # c1 = lambda_interchange_operation(c1, problem_instance)
+        
+        # c1 = lambda_shift_operation(c1, problem_instance)
+        # c2 = lambda_shift_operation(c2, problem_instance)
+
         for j in 1:length(c1.phenotype)
             route = map(p -> problem_instance.patients[p], c1.phenotype[j])
             local_2_opt!(route, problem_instance, total_objective) # Improve
+            local_3_opt!(route, problem_instance, total_objective) # Improve
             c1.phenotype[j] = map(p -> p.id, route)
         end
 
@@ -64,9 +69,11 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
         # c2 = lambda_shift_operation(c2, problem_instance)
         # c2 = lambda_interchange_operation(c2, problem_instance)
 
+
         for j in 1:length(c2.phenotype)
             route = map(p -> problem_instance.patients[p], c2.phenotype[j])
             local_2_opt!(route, problem_instance, total_objective) # Improve
+            local_3_opt!(route, problem_instance, total_objective) # Improve
             c2.phenotype[j] = map(p -> p.id, route)
         end
 
@@ -105,7 +112,7 @@ function genetic_algorithm(initial_population::Vector{Chromosome}, problem_insta
             
             @threads for i in eachindex(population)
                 # Perform large neighborhood TSP
-                tsp_all_routes!(population[i], problem_instance)
+                population[i] = tsp_all_routes!(population[i], problem_instance)
 
                 lambda_shift_time += @elapsed begin
                     population[i] = lambda_shift_operation(population[i], problem_instance)
@@ -185,12 +192,12 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
             
             construct_solution!(problem_instance, chromosome, n_nurses)
             
-            # Improve route
-            for k in 1:length(chromosome.phenotype)
-                route = map(p -> patients[p], chromosome.phenotype[k])
-                local_2_opt!(route, problem_instance, total_objective) # Improve
-                chromosome.phenotype[k] = map(p -> p.id, route)
-            end
+            # # Improve route
+            # for k in 1:length(chromosome.phenotype)
+            #     route = map(p -> patients[p], chromosome.phenotype[k])
+            #     local_2_opt!(route, problem_instance, total_objective) # Improve
+            #     chromosome.phenotype[k] = map(p -> p.id, route)
+            # end
         
 
             compute_unfitness!(chromosome, problem_instance)
@@ -227,6 +234,7 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
             end
         end
 
+        
         # Perform lambda shift operation
         chromosome = lambda_shift_operation(chromosome, problem_instance)
         # Perform lambda interchange operation
@@ -243,6 +251,9 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
         compute_unfitness!(chromosome, problem_instance)
         push!(population, chromosome)
     end
+
+    println("Finished initializing population\n")
+
     return population
 end
 
@@ -274,7 +285,7 @@ function island_algorithm(n_islands::Int, n_individuals::Int, n_generations::Int
 
         @threads for j in 1:n_islands
             # Perform genetic algorithm on each island
-            islands[j] = genetic_algorithm(islands[j], problem_instance, n_individuals, exchange_frequency, mutation_rate, n_nurses, 0)
+            islands[j] = genetic_algorithm(islands[j], problem_instance, n_individuals, exchange_frequency, mutation_rate, n_point_crossover(j == n_islands ? 0 : j), n_nurses, 0)
         end
 
         # Exchange individuals between islands
@@ -282,7 +293,6 @@ function island_algorithm(n_islands::Int, n_individuals::Int, n_generations::Int
             # Next island
             next = mod1(j + 1, n_islands)
             # Exchange n_exchange_individuals random individuals
-            sorted_population = sort(islands[j], by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))
             for k in 1:n_exchange_individuals
                 # Remove random individual from current island
                 exchange_individual = splice!(islands[j], rand(eachindex(islands[j])))
@@ -298,14 +308,13 @@ function island_algorithm(n_islands::Int, n_individuals::Int, n_generations::Int
     # Merge islands
     population = Vector{Chromosome}()
     for island in islands
-        for chromosome in island
-            push!(population, chromosome)
-        end
+        sorted_island = sort(island, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))
+        population = vcat(population, sorted_island[1:floor(Int, n_individuals/n_islands) + 1])
     end
     population = sort(population, by=p -> (p.time_unfitness, p.strain_unfitness, p.fitness))[1:n_individuals]
     
     # Perform genetic algorithm on merged population
-    population = genetic_algorithm(population, problem_instance, n_individuals, floor(Int, n_generations / 2), mutation_rate, n_nurses, verbose)
+    population = genetic_algorithm(population, problem_instance, n_individuals, floor(Int, n_generations/2), mutation_rate, n_point_crossover(2), n_nurses, verbose)
 
     return population
 end

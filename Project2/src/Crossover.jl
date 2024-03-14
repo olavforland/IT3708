@@ -7,6 +7,13 @@ using ..DataParser: ProblemInstance
 using ..VNSHeuristic: construct_solution!, improve_solution!, construct_single_route, local_2_opt!
 using ..Objective: total_objective
 
+using StatsBase
+
+function n_point_crossover(n::Int)
+    return (p1::Chromosome, p2::Chromosome, problem_instance::ProblemInstance) -> n > 0 ? n_point_crossover(p1, p2, problem_instance, n) : uniform_crossover(p1, p2, problem_instance)
+
+end
+
 function n_point_crossover(p1::Chromosome, p2::Chromosome, problem_instance::ProblemInstance, n::Int)
 
     n_patients = length(p1.genotype)
@@ -21,28 +28,44 @@ function n_point_crossover(p1::Chromosome, p2::Chromosome, problem_instance::Pro
     c2 = Chromosome([0 for _ in 1:n_patients], n_nurses)
 
     # Randomly select n points
-
     points = sort(sample(2:n_patients-1, n, replace=false))
-    push!(points, 1)
+    push!(points, 0)
     push!(points, n_patients)
 
     # Copy the genes from the parents, but based on the rank
+    switch = false
     for (point1, point2) in zip(points[1:end-1], points[2:end])
-        switch = false
-        for rank in 1:n_patients
-            if rank < point1 || rank > point2
-                continue
-            end
+        for rank in point1+1:point2
             if switch
                 c1.genotype[ranked_ids[rank]] = p1.genotype[ranked_ids[rank]]
                 c2.genotype[ranked_ids[rank]] = p2.genotype[ranked_ids[rank]]
-                break
             else
                 c1.genotype[ranked_ids[rank]] = p2.genotype[ranked_ids[rank]]
                 c2.genotype[ranked_ids[rank]] = p1.genotype[ranked_ids[rank]]
-                break
-            switch = switch
             end
+        end
+        switch = !switch
+    end
+    return c1, c2
+end
+
+function uniform_crossover(p1::Chromosome, p2::Chromosome, problem_instance::ProblemInstance)
+
+    n_patients = length(p1.genotype)
+    n_nurses = problem_instance.n_nurses
+    
+    # Create children
+    c1 = Chromosome([0 for _ in 1:n_patients], n_nurses)
+    c2 = Chromosome([0 for _ in 1:n_patients], n_nurses)
+
+    # Copy the genes from the parents, but based on the rank
+    for i in 1:n_patients
+        if rand() < 0.5
+            c1.genotype[i] = p1.genotype[i]
+            c2.genotype[i] = p2.genotype[i]
+        else
+            c1.genotype[i] = p2.genotype[i]
+            c2.genotype[i] = p1.genotype[i]
         end
     end
     return c1, c2

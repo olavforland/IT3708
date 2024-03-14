@@ -26,7 +26,7 @@ function tournament_selection(population::Vector{Chromosome}, n::Int)
 end
 
 function survivor_selection!(population::Vector{Chromosome}, child::Chromosome)
-    subsets = partition_population_8_subsets(population, child)
+    subsets = partition_population_4_subsets(population, child)
     for subset in subsets
         if !isempty(subset)
             # Sort the subset based on fitness, strain unfitness and time unfitness

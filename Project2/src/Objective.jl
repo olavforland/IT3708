@@ -37,7 +37,7 @@ function strain_unfitness_objective(route::Vector{Patient}, instance::ProblemIns
         nurse_strain += patient.demand
     end
 
-    return max(nurse_strain - instance.nurse_capacity, 0)
+    return max(nurse_strain - instance.nurse_capacity, 0.0)
     
 end
 

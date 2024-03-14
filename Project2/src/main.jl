@@ -32,7 +32,7 @@ using .LargeNeighborhoodSearch: tsp_all_routes!
 # push!(LOAD_PATH, pwd())
 using .TSPHeuristic: savelsbergh_heuristic
 
-instance_nr = 9
+instance_nr = 1
 
 # Path to the JSON file with data
 readpath = joinpath("data", "train_" * string(instance_nr) * ".json")
@@ -43,9 +43,9 @@ instance = parse_data(readpath)
 
 initial_population = initialize_population(30, instance.n_nurses, instance)
 
-# population = island_algorithm(1, 30, 100000, 20000, 3, instance, 0.3)
+population = island_algorithm(4, 30, 50000, 2000, 0, instance, 0.6)
 
-population = genetic_algorithm(initial_population, instance, 30, 500000, 0.3, instance.n_nurses)
+# population = genetic_algorithm(initial_population, instance, 30, 50000, 0.3, two_point_crossover, instance.n_nurses)
 
 # for individual in population
 #     tsp_all_routes!(individual, instance)

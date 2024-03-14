@@ -63,8 +63,8 @@ function improve_solution!(instance::ProblemInstance, chromosome::Chromosome)
 
         route = improve_single_route(instance.patients[nurse_patients], instance)
         chromosome.phenotype[nurse] = map(p -> p.id, route)
-        
     end
+    return chromosome
 end
 
 

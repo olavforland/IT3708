@@ -16,17 +16,8 @@ function lambda_shift_operation(chromosome::Chromosome, problem_instance::Proble
 
     while improved
         improved = false
-
-        # None empty indices of chromosome.phenotype
-        non_empty_indices = [index for (index, vector) in enumerate(chromosome.phenotype) if !isempty(vector)]
-
-        # Find the index of the first empty vector
-        first_empty_index = findfirst(isempty, chromosome.phenotype)
-        # Check if a first empty vector was found and append its index if so
-        nurse_indices = first_empty_index !== nothing ? [non_empty_indices; first_empty_index] : non_empty_indices
-
-        for i in nurse_indices
-            for j in nurse_indices
+        for i in 1:length(chromosome.phenotype)
+            for j in 1:length(chromosome.phenotype)
                 if i == j # Ensure we're not trying to shift within the same route
                     continue
                 end
@@ -68,16 +59,8 @@ function lambda_interchange_operation(chromosome::Chromosome, problem_instance::
 
     while improved
         improved = false
-        # None empty indices of chromosome.phenotype
-        non_empty_indices = [index for (index, vector) in enumerate(best_chromosome.phenotype) if !isempty(vector)]
-
-        # Find the index of the first empty vector
-        first_empty_index = findfirst(isempty, best_chromosome.phenotype)
-        # Check if a first empty vector was found and append its index if so
-        nurse_indices = first_empty_index !== nothing ? [non_empty_indices; first_empty_index] : non_empty_indices
-
-        for i in nurse_indices
-            for j in nurse_indices
+        for i in 1:length(best_chromosome.phenotype)
+            for j in 1:length(best_chromosome.phenotype)
                 if i == j # Skip if it's the same route
                     continue
                 end

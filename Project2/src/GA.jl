@@ -226,7 +226,7 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
 
             chromosome.genotype[patient.id] = current_nurse
             
-            construct_solution!(problem_instance, chromosome, n_nurses)
+            # construct_solution!(problem_instance, chromosome, n_nurses)
             
             compute_unfitness!(chromosome, problem_instance)
             compute_fitness!(chromosome, problem_instance)
@@ -239,8 +239,9 @@ function initialize_population(n_individuals::Int, n_nurses::Int, problem_instan
             end
 
 
-            if (chromosome.time_unfitness > 0.0 || chromosome.strain_unfitness > 0.0) #&& (length(chromosome.phenotype[current_nurse]) > n_patients / n_nurses)
+            if mod1(j, 5) == 20 #(chromosome.time_unfitness > 0.0 || chromosome.strain_unfitness > 0.0) #&& (length(chromosome.phenotype[current_nurse]) > n_patients / n_nurses)
 
+                construct_solution!(problem_instance, chromosome, n_nurses)
 
                 current_nurse += 1
                 current_nurse = mod1(current_nurse, n_nurses)

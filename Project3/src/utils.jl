@@ -1,5 +1,10 @@
+module utils
+
 using Images
 using Colors
+
+export read_image
+
 
 function read_image(file_path::String)
     # Read image from file path and return a Vector of Vector of RGB values
@@ -33,3 +38,4 @@ end #read_image
 #print(img[1:3])
 
 
+end #module

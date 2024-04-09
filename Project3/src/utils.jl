@@ -146,26 +146,11 @@ function mst_to_genotype(mst::Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}, dims::Tu
     end #for
 
     #flatten genotype
-    print("Gotit\n")
     return return reduce(vcat, genotype)
 
 end #mst_to_genotype
 
 
-
-img = read_image("images/86016/Test image.jpg")
-#print(img[1:3])
-
-mst = min_spanning_tree(img)
-
-#number of edges in the minimum spanning tree
-dims = (length(img), length(img[1]))
-
-genotype = mst_to_genotype(mst, dims)
-
-#find the number of "n" characters in the genotype
-num_n = count(x -> x == 'n', genotype)
-println("Number of 'n' characters in the genotype: ", num_n, "\n")
 
 end #module
 

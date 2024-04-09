@@ -1,5 +1,8 @@
 module Genetics
 
+using Statistics
+using ..Utils: euclidean_distance
+
 export Chromosome, compute_edge_obj!, compute_connectivity_obj!, compute_deviation_obj!
 
 mutable struct Chromosome
@@ -8,7 +11,7 @@ mutable struct Chromosome
     genotype::Vector{Char}
 
     #vector of vectors of tuples of RGB values
-    phenotype::Vector{Vector{Tuple{float64,float64,float64}}}
+    phenotype::Vector{Vector{Tuple{Float64,Float64,Float64}}}
 
     graph::Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}
 
@@ -29,16 +32,45 @@ end
 function compute_edge_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}})
     #TODO: 
     #Function for computing edge objective
+    #S.T maximization (originally), but minimized to keep consistent with other objectives. Hence -=.
+
+    for r in 1:length(chromosome.phenotype)
+        for c in 1:length(chromosome.phenotype[1])
+            valid_index = (i, j) -> 1 <= i <= length(chromosome.phenotype) && 1 <= j <= length(chromosome.phenotype[1])
+            for (di, dj) in [(0, 1), (1, 0), (0, -1), (-1, 0)]
+                if valid_index(r + di, c + dj)
+                    if mask[r][c] != mask[r+di][c+dj]
+                        chromosome.edge -= euclidean_distance(chromosome.phenotype[r][c], chromosome.phenotype[r+di][c+dj])
+                    end #if
+                end #if
+            end #for
+        end #for
+    end #for
 end
 
 function compute_connectivity_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}})
     #TODO: 
     #Function for computing connectivity objective
+
 end
 
-function compute_deviation_obj!(chrommosome::Chromosome, mask::Vector{Vector{Int}})
+function compute_deviation_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}})
     #TODO:
     #Function for computing deviation objective
+    #S.T minimization 
+
+    num_segments = maximum(mask)
+
+    #mu_k = mean of segment k
+    for k in 1:num_segments
+        mu_k = (mean([chromosome.phenotype[r][c][1] for r in 1:length(chromosome.phenotype) for c in 1:length(chromosome.phenotype[1]) if mask[r][c] == k]),
+            mean([chromosome.phenotype[r][c][2] for r in 1:length(chromosome.phenotype) for c in 1:length(chromosome.phenotype[1]) if mask[r][c] == k]),
+            mean([chromosome.phenotype[r][c][3] for r in 1:length(chromosome.phenotype) for c in 1:length(chromosome.phenotype[1]) if mask[r][c] == k])
+        )
+
+        chromosome.deviation += sum([(euclidean_distance(chromosome.phenotype[r][c], mu_k)) for r in 1:length(chromosome.phenotype) for c in 1:length(chromosome.phenotype[1]) if mask[r][c] == k])
+    end #for
+
 end
 
 

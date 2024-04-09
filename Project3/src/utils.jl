@@ -1,10 +1,10 @@
-module utils
+module Utils
 
 using Images
 using Colors
 using DataStructures
 
-export read_image
+export read_image, euclidean_distance, min_spanning_tree, mst_to_genotype
 
 
 function read_image(file_path::String)::Vector{Vector{Tuple{Float64,Float64,Float64}}}

@@ -41,4 +41,46 @@ function compute_deviation_obj!(chrommosome::Chromosome)
     #Function for computing deviation objective
 end
 
+
+function get_segment_mask(chromosome::Chromosome)::Vector{Vector{Int}}
+    """
+    Function that returns a mask of the segments in the chromosome
+    Segments are represented by integers. 
+    [[1,1,1,2,2,2],
+     [1,1,1,2,2,2],
+     [1,1,1,2,2,2],
+     [3,3,3,4,4,4],
+     [3,3,3,4,4,4],
+     [3,3,3,4,4,4]]
+    """
+
+    forrest = chromosome.graph
+    h = length(chromosome.phenotype)
+    w = length(chromosome.phenotype[1])
+
+    #initialize mask
+    mask = Vector{Vector{Int}}(fill(0, h, w))
+
+    #initialize segment counter
+    segment = 1
+
+    #initialize dictionary to keep track of segments
+    segments = Dict{Tuple{Int,Int},Int}()
+
+
+    #TODO: Check if it is actually this simple. 
+    for (r, neighbors) in forrest
+        for v in neighbors
+            if haskey(segments, r)
+                segments[v] = segments[r]
+            else
+                segments[r] = segment
+                segments[v] = segment
+                segment += 1
+            end #if
+        end #for
+    end #for
+
+end #get_segment_mask
+
 end #module

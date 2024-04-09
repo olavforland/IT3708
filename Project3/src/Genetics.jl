@@ -1,5 +1,7 @@
 module Genetics
 
+export Chromosome, compute_edge_obj!, compute_connectivity_obj!, compute_deviation_obj!
+
 mutable struct Chromosome
 
     #chars corresponding to edges. u, d, l, r, n for up, down, left, right, none
@@ -29,12 +31,12 @@ function compute_edge_obj!(chromosome::Chromosome)
     #Function for computing edge objective
 end
 
-function compute_connectivity_obj(chromosome::Chromosome)
+function compute_connectivity_obj!(chromosome::Chromosome)
     #TODO: 
     #Function for computing connectivity objective
 end
 
-function compute_deviation_obj(chrommosome::Chromosome)
+function compute_deviation_obj!(chrommosome::Chromosome)
     #TODO:
     #Function for computing deviation objective
 end

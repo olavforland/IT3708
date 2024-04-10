@@ -151,6 +151,72 @@ function mst_to_genotype(mst::Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}, dims::Tu
 end #mst_to_genotype
 
 
+function genotype_to_graph!(chromosome:: Chromosome)
+    """
+    Function that creates/updates the graph of a chromosome based on the genotype
+    """
+    genotype = chromosome.genotype
+    h = length(chromosome.phenotype)
+    w = length(chromosome.phenotype[1])
+
+    graph = Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}()
+
+    stacked_genotype = Vector{Vector{Char}}()
+    #need to stack the genotype. 
+
+    for i in 1:h
+        row = Vector{Char}()
+        for j in 1:w
+            push!(row, genotype[(i-1)*w + j])
+        end #for
+        push!(stacked_genotype, row)
+    end #for
+
+    valid_index = (i, j) -> 1 <= i <= h && 1 <= j <= w
+
+    for i in 1:h
+        for j in 1:w
+            if stacked_genotype[i][j] == 'n'
+                graph[(i, j)] = Set{Tuple{Int,Int}}()
+            elif stacked_genotype[i][j] == 'u'
+                if valid_index(i-1, j)
+                    if !(i-1, j) in keys(graph)
+                        graph[(i-1, j)] = Set{Tuple{Int,Int}}()
+                    end #if
+                    push!(graph[(i-1, j)], (i, j))
+                end #if
+            elif stacked_genotype[i][j] == 'd'
+                if valid_index(i+1, j)
+                    if !(i+1, j) in keys(graph)
+                        graph[(i+1, j)] = Set{Tuple{Int,Int}}()
+                    end #if
+                    push!(graph[(i+1, j)], (i, j))
+                end #if
+            elif stacked_genotype[i][j] == 'l'
+                if valid_index(i, j-1)
+                    if !(i, j-1) in keys(graph)
+                        graph[(i, j-1)] = Set{Tuple{Int,Int}}()
+                    end #if
+                    push!(graph[(i, j-1)], (i, j))
+                end #if
+            elif stacked_genotype[i][j] == 'r'
+                if valid_index(i, j+1)
+                    if !(i, j+1) in keys(graph)
+                        graph[(i, j+1)] = Set{Tuple{Int,Int}}()
+                    end #if
+                    push!(graph[(i, j+1)], (i, j))
+                end #if
+            end #if
+        end #for
+    end #for
+
+    chromosome.graph = graph
+
+end #genotype_to_graph!
+
+            
+
+
 end #module
 
 

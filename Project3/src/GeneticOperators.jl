@@ -3,7 +3,7 @@ module GeneticOperators
 using ..Genetics: Chromosome
 
 
-export crossover, mutation
+export single_point_crossover, mutation
 
 function single_point_crossover(p1::Chromosome, p2::Chromosome)::Tuple{Chromosome,Chromosome}
     """
@@ -12,11 +12,18 @@ function single_point_crossover(p1::Chromosome, p2::Chromosome)::Tuple{Chromosom
     args: two chromosomes to be crossed over
     returns: two new chromosomes
     """
+
     idx = rand(1:length(p1.genotype))
     c1 = Chromosome(p1.genotype[1:idx] + p2.genotype[idx+1:end])
     c2 = Chromosome(p2.genotype[1:idx] + p1.genotype[idx+1:end])
     return (c1, c2)
 
+end
+
+
+function uniform_crossover(p1::Chromosome, p2::Chromosome)::Tuple{Chromosome,Chromosome}
+    #TODO:
+    #Implement
 end
 
 

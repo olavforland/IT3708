@@ -3,6 +3,7 @@ module utils
 using Images
 using Colors
 using DataStructures
+using Base.Threads
 
 export read_image
 
@@ -174,30 +175,39 @@ function knn_dict(pixels::Vector{Vector{Tuple{Float64,Float64,Float64}}}, n_neig
         end #for
     end #for
 
-    for i in 1:h
-        for j in 1:w
-            pq = PriorityQueue{Tuple{Int,Int},Float64}()
-            for ii in 1:h
-                for jj in 1:w
-                    if (i, j) != (ii, jj)
-                        dist = euclidean_distance(pixels[i][j], pixels[ii][jj])
-                        enqueue!(pq, (ii, jj) => dist)
-                    end #if
+    println("Calculating neighbors on " * string(nthreads()) * " threads")
+
+    time = @elapsed begin
+
+        @threads for i in 1:h
+            for j in 1:w
+                pq = PriorityQueue{Tuple{Int,Int},Float64}()
+                for ii in 1:h
+                    for jj in 1:w
+                        if (i, j) != (ii, jj)
+                            dist = euclidean_distance(pixels[i][j], pixels[ii][jj])
+                            enqueue!(pq, (ii, jj) => dist)
+                        end #if
+                    end #for
+                end #for
+
+                for _ in 1:n_neighbors
+                    (ii, jj) = dequeue!(pq)
+                    push!(knn_dict[(i, j)], (ii, jj))
                 end #for
             end #for
-
-            for _ in 1:n_neighbors
-                (ii, jj) = dequeue!(pq)
-                knn_dict[(i, j)].add((ii, jj))
-            end #for
         end #for
-    end #for
 
+    end #time
+
+    println("Time to calculate neighbors: ", time, "\n")
     return knn_dict
 end #knn_dict
 
 
-
+pixels = read_image("Project3/images/86016/Test image.jpg")
+knn = knn_dict(pixels, 8)
+println(knn[(1, 1)])
 
 
 end #module

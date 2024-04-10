@@ -3,6 +3,7 @@ module utils
 using Images
 using Colors
 using DataStructures
+using Base.Threads
 
 export read_image
 
@@ -150,6 +151,63 @@ function mst_to_genotype(mst::Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}, dims::Tu
 
 end #mst_to_genotype
 
+
+function knn_dict(pixels::Vector{Vector{Tuple{Float64,Float64,Float64}}}, n_neighbors::Int)
+    """
+    Generates a dictionary of the k-nearest neighbors for each pixel in the image
+    Keys: Tuple of Int, Int, for pixel coords in image. 
+    Values: Set of Tuple of Int, Int, for pixel coords of k-nearest neighbors
+
+    args: Vector of Vector of Tuple of Float64, Float64, Float64, for RGB values of pixels
+          Int, number of neighbors to find
+
+    returns: Dict of Tuple of Int, Int to Set of Tuple of Int, Int
+    """
+
+    h = length(pixels)
+    w = length(pixels[1])
+
+    knn_dict = Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}()
+
+    for i in 1:h
+        for j in 1:w
+            knn_dict[(i, j)] = Set{Tuple{Int,Int}}()
+        end #for
+    end #for
+
+    println("Calculating neighbors on " * string(nthreads()) * " threads")
+
+    time = @elapsed begin
+
+        @threads for i in 1:h
+            for j in 1:w
+                pq = PriorityQueue{Tuple{Int,Int},Float64}()
+                for ii in 1:h
+                    for jj in 1:w
+                        if (i, j) != (ii, jj)
+                            dist = euclidean_distance(pixels[i][j], pixels[ii][jj])
+                            enqueue!(pq, (ii, jj) => dist)
+                        end #if
+                    end #for
+                end #for
+
+                for _ in 1:n_neighbors
+                    (ii, jj) = dequeue!(pq)
+                    push!(knn_dict[(i, j)], (ii, jj))
+                end #for
+            end #for
+        end #for
+
+    end #time
+
+    println("Time to calculate neighbors: ", time, "\n")
+    return knn_dict
+end #knn_dict
+
+
+pixels = read_image("Project3/images/86016/Test image.jpg")
+knn = knn_dict(pixels, 8)
+println(knn[(1, 1)])
 
 
 end #module

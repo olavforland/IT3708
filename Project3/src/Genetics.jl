@@ -53,6 +53,13 @@ function compute_connectivity_obj!(chromosome::Chromosome, mask::Vector{Vector{I
     #Function for computing connectivity objective
     #S.T minimization
 
+    for (r, neighbors) in knn_dict
+        for i in 1:length(neighbors)
+            if mask[r[1]][r[2]] != mask[n[1]][n[2]]
+                chromosome.connectivity += 1 / i
+            end #if
+        end #for
+    end #for
 end
 
 function compute_deviation_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}})

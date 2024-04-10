@@ -48,9 +48,10 @@ function compute_edge_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}})
     end #for
 end
 
-function compute_connectivity_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}})
+function compute_connectivity_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}}, knn_dict::Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}})
     #TODO: 
     #Function for computing connectivity objective
+    #S.T minimization
 
 end
 

@@ -147,7 +147,7 @@ function mst_to_genotype(mst::Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}, dims::Tu
     end #for
 
     #flatten genotype
-    return return reduce(vcat, genotype)
+    return return genotype
 
 end #mst_to_genotype
 
@@ -162,45 +162,34 @@ function genotype_to_graph!(chromosome::Chromosome)
 
     graph = Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}()
 
-    stacked_genotype = Vector{Vector{Char}}()
-    #need to stack the genotype. 
-
-    for i in 1:h
-        row = Vector{Char}()
-        for j in 1:w
-            push!(row, genotype[(i-1)*w+j])
-        end #for
-        push!(stacked_genotype, row)
-    end #for
-
     valid_index = (i, j) -> 1 <= i <= h && 1 <= j <= w
 
     for i in 1:h
         for j in 1:w
-            if stacked_genotype[i][j] == 'n'
+            if genotype[i][j] == 'n'
                 graph[(i, j)] = Set{Tuple{Int,Int}}()
-            elseif stacked_genotype[i][j] == 'u'
+            elseif genotype[i][j] == 'u'
                 if valid_index(i - 1, j)
                     if !(i - 1, j) in keys(graph)
                         graph[(i - 1, j)] = Set{Tuple{Int,Int}}()
                     end #if
                     push!(graph[(i - 1, j)], (i, j))
                 end #if
-            elseif stacked_genotype[i][j] == 'd'
+            elseif genotype[i][j] == 'd'
                 if valid_index(i + 1, j)
                     if !(i + 1, j) in keys(graph)
                         graph[(i + 1, j)] = Set{Tuple{Int,Int}}()
                     end #if
                     push!(graph[(i + 1, j)], (i, j))
                 end #if
-            elseif stacked_genotype[i][j] == 'l'
+            elseif genotype[i][j] == 'l'
                 if valid_index(i, j - 1)
                     if !(i, j - 1) in keys(graph)
                         graph[(i, j - 1)] = Set{Tuple{Int,Int}}()
                     end #if
                     push!(graph[(i, j - 1)], (i, j))
                 end #if
-            elseif stacked_genotype[i][j] == 'r'
+            elseif genotype[i][j] == 'r'
                 if valid_index(i, j + 1)
                     if !(i, j + 1) in keys(graph)
                         graph[(i, j + 1)] = Set{Tuple{Int,Int}}()

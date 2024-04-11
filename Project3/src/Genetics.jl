@@ -8,7 +8,7 @@ export Chromosome, compute_edge_obj!, compute_connectivity_obj!, compute_deviati
 mutable struct Chromosome
 
     #chars corresponding to edges. u, d, l, r, n for up, down, left, right, none
-    genotype::Vector{Char}
+    genotype::Vector{Vector{Char}}
 
     #vector of vectors of tuples of RGB values
     phenotype::Vector{Vector{Tuple{Float64,Float64,Float64}}}

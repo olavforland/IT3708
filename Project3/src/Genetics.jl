@@ -2,6 +2,7 @@ module Genetics
 
 using Statistics
 using ..Utils: euclidean_distance
+using ..Problem: ProblemInstance
 
 export Chromosome, compute_edge_obj!, compute_connectivity_obj!, compute_deviation_obj!
 
@@ -10,8 +11,6 @@ mutable struct Chromosome
     #chars corresponding to edges. u, d, l, r, n for up, down, left, right, none
     genotype::Vector{Vector{Char}}
 
-    #vector of vectors of tuples of RGB values
-    phenotype::Vector{Vector{Tuple{Float64,Float64,Float64}}}
 
     graph::Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}
 
@@ -48,12 +47,12 @@ function compute_edge_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}})
     end #for
 end
 
-function compute_connectivity_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}}, knn_dict::Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}})
+function compute_connectivity_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}}, instance::ProblemInstance)
     #TODO: 
     #Function for computing connectivity objective
     #S.T minimization
 
-    for (r, neighbors) in knn_dict
+    for (r, neighbors) in instance.knn
         for i in 1:length(neighbors)
             if mask[r[1]][r[2]] != mask[n[1]][n[2]]
                 chromosome.connectivity += 1 / i

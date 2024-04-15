@@ -115,6 +115,8 @@ function get_segment_mask(chromosome::Chromosome)::Vector{Vector{Int}}
     #4. Repeat until all nodes are in a segment.
     #Could probably be done more efficiently.
 
+    #Something was wrong here...
+    #Fant ikke en god løsning...
 
     #fill mask with segment values
     for (segment, set) in segments

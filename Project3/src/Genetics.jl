@@ -4,7 +4,7 @@ using Statistics
 using ..Utils: euclidean_distance
 using ..Problem: ProblemInstance
 
-export Chromosome, compute_edge_obj!, compute_connectivity_obj!, compute_deviation_obj!
+export Chromosome, compute_edge_obj!, compute_connectivity_obj!, compute_deviation_obj!, get_segment_mask, genotype_to_graph!
 
 mutable struct Chromosome
 
@@ -23,7 +23,7 @@ mutable struct Chromosome
     #minimize deviation of segments mean(segment) - pixel value
     deviation::Float64
 
-    Chromosome(genotype::Vector{Char}) = new(genotype, nothing, nothing, nothing, nothing, nothing)
+    Chromosome(genotype::Vector{Vector{Char}}) = new(genotype, Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}(), 0.0, 0.0, 0.0)
 end
 
 
@@ -94,17 +94,17 @@ function get_segment_mask(chromosome::Chromosome)::Vector{Vector{Int}}
     """
 
     forrest = chromosome.graph
-    h = length(chromosome.phenotype)
-    w = length(chromosome.phenotype[1])
+    h = length(chromosome.genotype)
+    w = length(chromosome.genotype[1])
 
     #initialize mask
-    mask = Vector{Vector{Int}}(fill(0, h, w))
+    mask = [[0 for _ in 1:w] for _ in 1:h]
 
     #initialize segment counter
     segment = 1
 
     #initialize dictionary to keep track of segments
-    segments = Dict{Int,Tuple{Int,Int}}()
+    segments = Dict{Int,Set{Tuple{Int,Int}}}()
 
 
     #TODO: Check if it is actually this simple. 
@@ -114,16 +114,7 @@ function get_segment_mask(chromosome::Chromosome)::Vector{Vector{Int}}
     #3. If it is not in a segment, create a new segment and add the children to the segment, with the parent node. 
     #4. Repeat until all nodes are in a segment.
     #Could probably be done more efficiently.
-    for (r, neighbors) in forrest
-        for (r, set) in segments
-            if r in set
-                push!(set, neighbors)
-                break
-            end
-        end
-        segments[segment] = push!(Set{Tuple{Int,Int}}(neighbors), r)
-        segment += 1
-    end
+
 
     #fill mask with segment values
     for (segment, set) in segments
@@ -134,5 +125,59 @@ function get_segment_mask(chromosome::Chromosome)::Vector{Vector{Int}}
 
     return mask
 end #get_segment_mask
+
+
+
+function genotype_to_graph!(chromosome::Chromosome)
+    """
+    Function that creates/updates the graph of a chromosome based on the genotype
+    """
+    genotype = chromosome.genotype
+    h = length(chromosome.phenotype)
+    w = length(chromosome.phenotype[1])
+
+    graph = Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}()
+
+    valid_index = (i, j) -> 1 <= i <= h && 1 <= j <= w
+
+    for i in 1:h
+        for j in 1:w
+            if genotype[i][j] == 'n'
+                graph[(i, j)] = Set{Tuple{Int,Int}}()
+            elseif genotype[i][j] == 'u'
+                if valid_index(i - 1, j)
+                    if !(i - 1, j) in keys(graph)
+                        graph[(i - 1, j)] = Set{Tuple{Int,Int}}()
+                    end #if
+                    push!(graph[(i - 1, j)], (i, j))
+                end #if
+            elseif genotype[i][j] == 'd'
+                if valid_index(i + 1, j)
+                    if !(i + 1, j) in keys(graph)
+                        graph[(i + 1, j)] = Set{Tuple{Int,Int}}()
+                    end #if
+                    push!(graph[(i + 1, j)], (i, j))
+                end #if
+            elseif genotype[i][j] == 'l'
+                if valid_index(i, j - 1)
+                    if !(i, j - 1) in keys(graph)
+                        graph[(i, j - 1)] = Set{Tuple{Int,Int}}()
+                    end #if
+                    push!(graph[(i, j - 1)], (i, j))
+                end #if
+            elseif genotype[i][j] == 'r'
+                if valid_index(i, j + 1)
+                    if !(i, j + 1) in keys(graph)
+                        graph[(i, j + 1)] = Set{Tuple{Int,Int}}()
+                    end #if
+                    push!(graph[(i, j + 1)], (i, j))
+                end #if
+            end #if
+        end #for
+    end #for
+
+    chromosome.graph = graph
+
+end #genotype_to_graph!
 
 end #module

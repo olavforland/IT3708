@@ -2,7 +2,7 @@ module MOEA
 
 using Random
 
-using ..Genetics: Chromosome, compute_edge_obj!, compute_connectivity_obj!, compute_deviation_obj!
+using ..Genetics: Chromosome, compute_edge_obj!, compute_connectivity_obj!, compute_deviation_obj!, get_segment_mask
 using ..Utils: read_image, mst_to_genotype, min_spanning_tree
 using ..Problem: ProblemInstance
 
@@ -17,7 +17,7 @@ function initialize_population(n_individuals::Int, instance::ProblemInstance)::V
     """
     Function that initializes a population of n individuals
     """
-    println("Initializing population of ", n_inidividuals, " individuals")
+    println("Initializing population of ", n_individuals, " individuals")
     population = Vector{Chromosome}()
 
     #create n_inidividuals 
@@ -27,9 +27,10 @@ function initialize_population(n_individuals::Int, instance::ProblemInstance)::V
         genotype = mst_to_genotype(mst, (instance.height, instance.width))
         chromosome = Chromosome(genotype)
         chromosome.graph = mst
-        compute_edge_obj!(chromosome)
-        compute_connectivity_obj!(chromosome)
-        compute_deviation_obj!(chromosome)
+        mask = get_segment_mask(chromosome)
+        compute_edge_obj!(chromosome, mask)
+        compute_connectivity_obj!(chromosome, mask, instance)
+        compute_deviation_obj!(chromosome, mask)
         push!(population, chromosome)
 
     end #for

@@ -8,6 +8,7 @@ using Base.Threads
 export read_image, euclidean_distance, min_spanning_tree, mst_to_genotype
 
 
+
 function read_image(file_path::String)::Vector{Vector{Tuple{Float64,Float64,Float64}}}
 
     """
@@ -115,7 +116,7 @@ end #min_spanning_tree
 
 
 
-function mst_to_genotype(mst::Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}, dims::Tuple{Int,Int})::Vector{Char}
+function mst_to_genotype(mst::Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}, dims::Tuple{Int,Int})::Vector{Vector{Char}}
     """
     function that converts a minimum spanning tree to a genotype
     where the edges are represented by characters. 
@@ -151,58 +152,6 @@ function mst_to_genotype(mst::Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}, dims::Tu
 
 end #mst_to_genotype
 
-
-function genotype_to_graph!(chromosome::Chromosome)
-    """
-    Function that creates/updates the graph of a chromosome based on the genotype
-    """
-    genotype = chromosome.genotype
-    h = length(chromosome.phenotype)
-    w = length(chromosome.phenotype[1])
-
-    graph = Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}()
-
-    valid_index = (i, j) -> 1 <= i <= h && 1 <= j <= w
-
-    for i in 1:h
-        for j in 1:w
-            if genotype[i][j] == 'n'
-                graph[(i, j)] = Set{Tuple{Int,Int}}()
-            elseif genotype[i][j] == 'u'
-                if valid_index(i - 1, j)
-                    if !(i - 1, j) in keys(graph)
-                        graph[(i - 1, j)] = Set{Tuple{Int,Int}}()
-                    end #if
-                    push!(graph[(i - 1, j)], (i, j))
-                end #if
-            elseif genotype[i][j] == 'd'
-                if valid_index(i + 1, j)
-                    if !(i + 1, j) in keys(graph)
-                        graph[(i + 1, j)] = Set{Tuple{Int,Int}}()
-                    end #if
-                    push!(graph[(i + 1, j)], (i, j))
-                end #if
-            elseif genotype[i][j] == 'l'
-                if valid_index(i, j - 1)
-                    if !(i, j - 1) in keys(graph)
-                        graph[(i, j - 1)] = Set{Tuple{Int,Int}}()
-                    end #if
-                    push!(graph[(i, j - 1)], (i, j))
-                end #if
-            elseif genotype[i][j] == 'r'
-                if valid_index(i, j + 1)
-                    if !(i, j + 1) in keys(graph)
-                        graph[(i, j + 1)] = Set{Tuple{Int,Int}}()
-                    end #if
-                    push!(graph[(i, j + 1)], (i, j))
-                end #if
-            end #if
-        end #for
-    end #for
-
-    chromosome.graph = graph
-
-end #genotype_to_graph!
 
 
 
@@ -257,11 +206,6 @@ function knn_dict(pixels::Vector{Vector{Tuple{Float64,Float64,Float64}}}, n_neig
     println("Time to calculate neighbors: ", time, "\n")
     return knn_dict
 end #knn_dict
-
-
-pixels = read_image("Project3/images/86016/Test image.jpg")
-knn = knn_dict(pixels, 8)
-println(knn[(1, 1)])
 
 
 end #module

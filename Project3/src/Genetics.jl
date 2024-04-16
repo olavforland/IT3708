@@ -28,18 +28,21 @@ end
 
 
 #Might be better to combine these to avoid recalculating the same values if they are needed in multiple objectives. 
-function compute_edge_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}})
+function compute_edge_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}}, instance::ProblemInstance)
     #TODO: 
     #Function for computing edge objective
     #S.T maximization (originally), but minimized to keep consistent with other objectives. Hence -=.
+    h = instance.height
+    w = instance.width
 
-    for r in 1:length(chromosome.phenotype)
-        for c in 1:length(chromosome.phenotype[1])
-            valid_index = (i, j) -> 1 <= i <= length(chromosome.phenotype) && 1 <= j <= length(chromosome.phenotype[1])
+
+    for r in 1:length(h)
+        for c in 1:length(w)
+            valid_index = (i, j) -> 1 <= i <= length(h) && 1 <= j <= length(w)
             for (di, dj) in [(0, 1), (1, 0), (0, -1), (-1, 0)]
                 if valid_index(r + di, c + dj)
                     if mask[r][c] != mask[r+di][c+dj]
-                        chromosome.edge -= euclidean_distance(chromosome.phenotype[r][c], chromosome.phenotype[r+di][c+dj])
+                        chromosome.edge -= euclidean_distance(instance.pixels[r][c], instance.pixels[r+di][c+dj])
                     end #if
                 end #if
             end #for
@@ -51,83 +54,93 @@ function compute_connectivity_obj!(chromosome::Chromosome, mask::Vector{Vector{I
     #TODO: 
     #Function for computing connectivity objective
     #S.T minimization
-
     for (r, neighbors) in instance.knn
-        for i in 1:length(neighbors)
+        for (idx, n) in enumerate(neighbors)
             if mask[r[1]][r[2]] != mask[n[1]][n[2]]
-                chromosome.connectivity += 1 / i
+                chromosome.connectivity += 1 / idx
             end #if
         end #for
     end #for
 end
 
-function compute_deviation_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}})
+function compute_deviation_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}}, instance::ProblemInstance)
     #TODO:
     #Function for computing deviation objective
-    #S.T minimization 
+    #S.T minimization
+    h = instance.height
+    w = instance.width
 
-    num_segments = maximum(mask)
+    num_segments = maximum([maximum(mask[r]) for r in 1:length(h)])
+
 
     #mu_k = mean of segment k
     for k in 1:num_segments
-        mu_k = (mean([chromosome.phenotype[r][c][1] for r in 1:length(chromosome.phenotype) for c in 1:length(chromosome.phenotype[1]) if mask[r][c] == k]),
-            mean([chromosome.phenotype[r][c][2] for r in 1:length(chromosome.phenotype) for c in 1:length(chromosome.phenotype[1]) if mask[r][c] == k]),
-            mean([chromosome.phenotype[r][c][3] for r in 1:length(chromosome.phenotype) for c in 1:length(chromosome.phenotype[1]) if mask[r][c] == k])
+        mu_k = (mean([instance.pixels[r][c][1] for r in 1:length(h) for c in 1:length(w) if mask[r][c] == k]),
+            mean([instance.pixels[r][c][2] for r in 1:length(h) for c in 1:length(w) if mask[r][c] == k]),
+            mean([instance.pixels[r][c][3] for r in 1:length(h) for c in 1:length(w) if mask[r][c] == k])
         )
 
-        chromosome.deviation += sum([(euclidean_distance(chromosome.phenotype[r][c], mu_k)) for r in 1:length(chromosome.phenotype) for c in 1:length(chromosome.phenotype[1]) if mask[r][c] == k])
+        chromosome.deviation += sum([(euclidean_distance(instance.pixels[r][c], mu_k)) for r in 1:length(h) for c in 1:length(w) if mask[r][c] == k])
     end #for
 
 end
 
 
-function get_segment_mask(chromosome::Chromosome)::Vector{Vector{Int}}
-    """
-    Function that returns a mask of the segments in the chromosome
-    Segments are represented by integers. 
-    [[1,1,1,2,2,2],
-     [1,1,1,2,2,2],
-     [1,1,1,2,2,2],
-     [3,3,3,4,4,4],
-     [3,3,3,4,4,4],
-     [3,3,3,4,4,4]]
-    """
-
+function get_segment_mask(chromosome::Chromosome, instance::ProblemInstance)::Vector{Vector{Int}}
     forrest = chromosome.graph
-    h = length(chromosome.genotype)
-    w = length(chromosome.genotype[1])
-
-    #initialize mask
-    mask = [[0 for _ in 1:w] for _ in 1:h]
-
-    #initialize segment counter
-    segment = 1
-
-    #initialize dictionary to keep track of segments
-    segments = Dict{Int,Set{Tuple{Int,Int}}}()
-
-
-    #TODO: Check if it is actually this simple. 
-    #Current strat: 
-    #1. For each node with children in the forrest, check if it is in a segment.
-    #2. If it is in a segment, add the children to the segment.
-    #3. If it is not in a segment, create a new segment and add the children to the segment, with the parent node. 
-    #4. Repeat until all nodes are in a segment.
-    #Could probably be done more efficiently.
-
-    #Something was wrong here...
-    #Fant ikke en god løsning...
-
-    #fill mask with segment values
-    for (segment, set) in segments
-        for (r, c) in set
-            mask[r][c] = segment
+    for (k, v) in forrest
+        for tup in v
+            if tup in keys(forrest)
+                push!(forrest[tup], k)
+            else
+                forrest[tup] = Set([k])
+            end
         end
     end
 
+    h = instance.height
+    w = instance.width
+
+    segments = Dict{Int,Set{Tuple{Int,Int}}}()
+
+    v = Set{Tuple{Int,Int}}()
+
+    function bfs!(forrest, root)
+        q = [root]
+        visited = Set{Tuple{Int,Int}}()
+        while !isempty(q)
+            node = popfirst!(q)
+            if node in visited
+                continue
+            end
+            push!(visited, node)
+            if node in keys(forrest)
+                for neighbor in forrest[node]
+                    push!(q, neighbor)
+                end
+            end
+        end
+        v = union!(v, visited)
+        return visited
+    end
+
+    segmentcounter = 1
+    for (k, val) in forrest
+        if !(k in v)
+            segment = bfs!(forrest, k)
+            segments[segmentcounter] = segment
+            segmentcounter += 1
+        end
+    end
+    mask = [[0 for _ in 1:w] for _ in 1:h]
+
+    for (k, v) in segments
+        for (r, c) in v
+            mask[r][c] = k
+        end
+    end
     return mask
 end #get_segment_mask
-
 
 
 function genotype_to_graph!(chromosome::Chromosome)

@@ -23,7 +23,7 @@ function main()
     population = initialize_population(10, probleminstance)
 
     for i in 1:10
-        println(population[i].edge_obj)
+        println(population[i].edge, " ", population[i].connectivity, " ", population[i].deviation)
     end #for
     # args: population, p_cross, p_mut, n_generations, n_offspring
     multi_obj_GA(population, 0.8, 0.1, 100, 10)

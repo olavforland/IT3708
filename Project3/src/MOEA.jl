@@ -27,10 +27,10 @@ function initialize_population(n_individuals::Int, instance::ProblemInstance)::V
         genotype = mst_to_genotype(mst, (instance.height, instance.width))
         chromosome = Chromosome(genotype)
         chromosome.graph = mst
-        mask = get_segment_mask(chromosome)
-        compute_edge_obj!(chromosome, mask)
+        mask = get_segment_mask(chromosome, instance)
+        compute_edge_obj!(chromosome, mask, instance)
         compute_connectivity_obj!(chromosome, mask, instance)
-        compute_deviation_obj!(chromosome, mask)
+        compute_deviation_obj!(chromosome, mask, instance)
         push!(population, chromosome)
 
     end #for

@@ -29,8 +29,9 @@ function draw_segments(chromosome::Chromosome, instance::ProblemInstance, path::
         img[h][j] = 0
     end #for
 
+    pre_path = "evaluator/student_segments/"
     #write vector to txt file
-    io = open(path, "w")
+    io = open(pre_path + path, "w")
     for line in img
         println(io, join(line, ","))
     end #for

@@ -80,7 +80,7 @@ function min_spanning_tree(rgbs::Vector{Vector{Tuple{Float64,Float64,Float64}}})
 
     #randomly select root
     root = (rand(1:h), rand(1:w))
-    print("root: ", root, "\n")
+
     enqueue!(pq, (root, root) => 0.0)
 
     while !isempty(pq)
@@ -103,13 +103,7 @@ function min_spanning_tree(rgbs::Vector{Vector{Tuple{Float64,Float64,Float64}}})
         end #if
     end #while
 
-
-    println("Number of nodes in the minimum spanning tree: ", length(connected), "\n")
-
-
-
     return mst
-
 
 end #min_spanning_tree
 

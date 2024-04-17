@@ -1,6 +1,7 @@
 module Genetics
 
 using Statistics
+using DataFrames
 using ..Utils: euclidean_distance
 using ..Problem: ProblemInstance
 
@@ -73,16 +74,14 @@ function compute_deviation_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}
     num_segments = maximum([maximum(mask[r]) for r in 1:length(h)])
 
 
-    #mu_k = mean of segment k
-    for k in 1:num_segments
-        mu_k = (mean([instance.pixels[r][c][1] for r in 1:length(h) for c in 1:length(w) if mask[r][c] == k]),
-            mean([instance.pixels[r][c][2] for r in 1:length(h) for c in 1:length(w) if mask[r][c] == k]),
-            mean([instance.pixels[r][c][3] for r in 1:length(h) for c in 1:length(w) if mask[r][c] == k])
-        )
+    #mu_k = dict of segment means 0.21932524803251266
+    mu_k, segments = get_mu_k(instance.pixels, mask)
 
-        chromosome.deviation += sum([(euclidean_distance(instance.pixels[r][c], mu_k)) for r in 1:length(h) for c in 1:length(w) if mask[r][c] == k])
+    for i in 1:num_segments
+        for pixel in segments[i]
+            chromosome.deviation += euclidean_distance(pixel, mu_k[i])
+        end #for
     end #for
-
 end
 
 
@@ -194,5 +193,33 @@ function genotype_to_graph!(chromosome::Chromosome)
     chromosome.graph = graph
 
 end #genotype_to_graph!
+
+
+function get_mu_k(pixels::Vector{Vector{Tuple{Float64,Float64,Float64}}}, mask::Vector{Vector{Int}})
+    """
+    Function that calculates the mean of each segment in the mask
+    """
+    f_pixels = reduce(vcat, pixels)
+    f_mask = reduce(vcat, mask)
+    zipped = zip(f_pixels, f_mask)
+
+    mu_k = Dict{Int,Tuple{Float64,Float64,Float64}}()
+    segments = Dict{Int,Vector{Tuple{Float64,Float64,Float64}}}()
+
+    for (pixel, segment) in zipped
+        if segment in keys(segments)
+            push!(segments[segment], pixel)
+        else
+            segments[segment] = [pixel]
+        end
+    end
+
+    for (k, pixels) in segments
+        mu_k[k] = (mean([p[1] for p in pixels]), mean([p[2] for p in pixels]), mean([p[3] for p in pixels]))
+    end
+
+    return mu_k, segments
+
+end #
 
 end #module

@@ -9,7 +9,7 @@ export fast_non_dominated_sort
 
 
 
-function fast_non_dominated_sort(population::Vector{Chromosome})
+function fast_non_dominated_sort!(population::Vector{Chromosome})
     """
     Sorts the population into pareto fronts based on edge, deviation and connectivity
     """
@@ -41,8 +41,6 @@ function fast_non_dominated_sort(population::Vector{Chromosome})
         end #if
     end #for
 
-    
-
     i = 1
     # While there are solutions in the ith front
     while !isempty(pareto_fronts[i])
@@ -60,12 +58,55 @@ function fast_non_dominated_sort(population::Vector{Chromosome})
             end #for
         end #for
         i += 1
-        push!(pareto_fronts, next_front)
+        if !isempty(next_front)
+            push!(pareto_fronts, next_front)
+        else
+            break
+        end
+
     end #while
 
     return pareto_fronts
 end
 
+function crowding_distance_assignment!(front::Vector{Chromosome})
+    """
+    Assigns crowding distance to each chromosome in the front
+    """
+
+    for p in front
+        p.crowding_distance = 0.0
+    end #for
+    
+
+    # For each objective function
+    for objective in [x->x.edge, x->x.connectivity, x->x.deviation]
+        front = sort(front, by=objective)
+
+        # Set boundary point distance to inf so they are always selected
+        front[1].crowding_distance = Inf
+        front[end].crowding_distance = Inf
+        
+        f_min = objective(front[1])
+        f_max = objective(front[end]) 
+
+        # For all other points, add normalized manhatten distance to neighbors
+        for i in 2:length(front)-1
+            front[i].crowding_distance += (objective(front[i+1]) - objective(front[i-1])) / (f_max - f_min)
+        end #for
+    end #for
+end
+
+function crowded_comparison_operator(i::Chromosome, j::Chromosome)
+    """
+    Comparison operator for sorting based on crowding distance and rank.
+        Individuals in better frontiers are prioritized, with ties broken by crowding distance.
+        Returns true if inidividual i is better than individual j
+    """
+    return (i.rank < j.rank) || ((i.rank == j.rank) && (i.crowding_distance > j.crowding_distance))
+
+end
 
 
 end # module
+

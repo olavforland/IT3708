@@ -5,10 +5,12 @@ using Random
 using ..Genetics: Chromosome, compute_edge_obj!, compute_connectivity_obj!, compute_deviation_obj!, get_segment_mask
 using ..Utils: read_image, mst_to_genotype, min_spanning_tree
 using ..Problem: ProblemInstance
+using ..NSGA2: fast_non_dominated_sort!, crowding_distance_assignment!, crowded_comparison_operator
+using ..Selection: binary_tournament_parent_selection, elitism_survivor_selection
 
-export multi_obj_GA, initialize_population
+export multi_obj_EA, initialize_population
 
-function multi_obj_GA(population::Vector{Chromosome}, p_cross::Float64, p_mut::Float64, n_generations::Int, n_offspring::Int)
+function multi_obj_EA(population::Vector{Chromosome}, p_cross::Float64, p_mut::Float64, n_generations::Int, n_offspring::Int)
     return population
 end
 

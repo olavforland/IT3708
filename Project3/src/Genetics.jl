@@ -35,8 +35,11 @@ mutable struct Chromosome
     # Rank of the chromosome   
     rank::Int
 
+    # Crowding distance of chromosome
+    crowding_distance::Float64
 
-    Chromosome(genotype::Vector{Vector{Char}}) = new(genotype, Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}(), 0.0, 0.0, 0.0, Set{Chromosome}(), 0, 0)
+
+    Chromosome(genotype::Vector{Vector{Char}}) = new(genotype, Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}(), 0.0, 0.0, 0.0, Set{Chromosome}(), 0, 0, 0.0)
 end
 
 

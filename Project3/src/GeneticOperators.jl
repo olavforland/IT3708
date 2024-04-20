@@ -6,14 +6,6 @@ using ..Genetics: Chromosome
 export uniform_crossover, mutation
 
 
-function parent_selection(population::Vector{Chromosome})
-    """
-    """
-end
-
-
-
-
 function uniform_crossover(p1::Chromosome, p2::Chromosome)::Tuple{Chromosome,Chromosome}
     #TODO:
     #Implement uniform crossover

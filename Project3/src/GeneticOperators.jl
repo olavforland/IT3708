@@ -3,7 +3,7 @@ module GeneticOperators
 using ..Genetics: Chromosome
 
 
-export uniform_crossover, mutation
+export uniform_crossover, mutate!
 
 
 function uniform_crossover(p1::Chromosome, p2::Chromosome)::Tuple{Chromosome,Chromosome}
@@ -32,13 +32,16 @@ function uniform_crossover(p1::Chromosome, p2::Chromosome)::Tuple{Chromosome,Chr
 end
 
 
-function mutation(chromosome::Chromosome)::Chromosome
+function mutate!(chromosome::Chromosome, mutation_rate::Float64)::Chromosome
     """
     Function that mutates a chromosome
 
     args: chromosome to be mutated
     returns: mutated chromosome
     """
+    if rand() > mutation_rate
+        return
+    end
     i = rand(1:length(chromosome.genotype))
     j = rand(1:length(chromosome.genotype[1]))
     direction = rand(['u', 'd', 'l', 'r', 'n'])
@@ -93,7 +96,10 @@ function update_graph_dict!(chromosome::Chromosome, changed_idx::Tuple{Int,Int},
         end #if
         push!(chromosome.graph[new_pointed_to], changed_idx)
         old_pointed_to = (changed_idx[1] + old_dir[1], changed_idx[2] + old_dir[2])
+
+        print(chromosome.graph[old_pointed_to])
         delete!(chromosome.graph[old_pointed_to], changed_idx)
+
         if isempty(chromosome.graph[old_pointed_to])
             delete!(chromosome.graph, old_pointed_to)
         end #if

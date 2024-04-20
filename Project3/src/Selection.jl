@@ -6,7 +6,7 @@ using ..Genetics: Chromosome
 using ..NSGA2: fast_non_dominated_sort!, crowding_distance_assignment!, crowded_comparison_operator
 
 
-function binary_tournament_parent_selection(population::Vector{Chromosome}, n_parents::Int=2)::Chromosome
+function binary_tournament_parent_selection(population::Vector{Chromosome}, n_parents::Int=2)
     """
     Function that selects a parent using binary tournament selection
     """

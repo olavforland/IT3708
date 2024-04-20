@@ -28,48 +28,14 @@ function main()
     #args: n_individuals, image_path
     population = initialize_population(10, probleminstance)
 
+    
     for i in 1:10
         println(population[i].edge, " ", population[i].connectivity, " ", population[i].deviation)
     end #for
-
     draw_segments(population[1], probleminstance)
-
-    # args: population, p_cross, p_mut, n_generations, n_offspring
-    multi_obj_EA(population, 0.8, 0.1, 100, 10)
-
-    for p in population
-        p.edge = rand(1:10)
-        p.connectivity = rand(1:10)
-        p.deviation = rand(1:10)
-    end #for
-
-    print("\n\n")
-    pareto_fronts = fast_non_dominated_sort!(population)
-    for front in pareto_fronts
-        crowding_distance_assignment!(front)
-        for p in front
-            println(p.edge, " ", p.connectivity, " ", p.deviation)
-        end #for
-        print("\n")
-    end #for
-
-    print("\n\n")
-    for p in sort(population, by=x->(x.rank, -x.crowding_distance))
-        println(p.edge, " ", p.connectivity, " ", p.deviation)
-    end #for
-
-    print("\n\n")
-    population = elitism_survivor_selection(population, population)
-
-    for p in population
-        println(p.edge, " ", p.connectivity, " ", p.deviation)
-    end #for
-
-
-
-
-
     
+    # args: population, p_cross, p_mut, n_generations, n_offspring
+    multi_obj_EA(population, 0.2, 100, 10)
 
 
 end #main

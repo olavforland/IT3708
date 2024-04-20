@@ -24,7 +24,19 @@ mutable struct Chromosome
     #minimize deviation of segments mean(segment) - pixel value
     deviation::Float64
 
-    Chromosome(genotype::Vector{Vector{Char}}) = new(genotype, Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}(), 0.0, 0.0, 0.0)
+
+
+    # Set of solutions dominated by this chromosome
+    dominated::Set{Chromosome}
+
+    # Number of solutions that dominate this chromosome
+    n_dominated::Int
+
+    # Rank of the chromosome   
+    rank::Int
+
+
+    Chromosome(genotype::Vector{Vector{Char}}) = new(genotype, Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}(), 0.0, 0.0, 0.0, Set{Chromosome}(), 0, 0)
 end
 
 

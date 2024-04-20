@@ -7,6 +7,7 @@ include("Genetics.jl")
 include("MOEA.jl")
 include("GeneticOperators.jl")
 include("EvalInterface.jl")
+include("NSGA2.jl")
 
 
 using .MOEA: multi_obj_GA, initialize_population
@@ -14,6 +15,7 @@ using .Genetics: Chromosome
 using .Utils: read_image
 using .Problem: ProblemInstance
 using .EvalInterface: draw_segments
+using .NSGA2: fast_non_dominated_sort
 
 function main()
     print("Main function\n")
@@ -33,6 +35,22 @@ function main()
     # args: population, p_cross, p_mut, n_generations, n_offspring
     multi_obj_GA(population, 0.8, 0.1, 100, 10)
 
+    for p in population
+        p.edge = rand(1:10)
+        p.connectivity = rand(1:10)
+        p.deviation = rand(1:10)
+    end #for
+
+    print("\n\n")
+    pareto_fronts = fast_non_dominated_sort(population)
+    for front in pareto_fronts
+        for p in front
+            println(p.edge, " ", p.connectivity, " ", p.deviation)
+        end #for
+        print("\n")
+    end #for
+
+    
 
 
 end #main

@@ -6,22 +6,6 @@ using ..Genetics: Chromosome
 export uniform_crossover, mutation
 
 
-function parent_selection(population::Vector{Chromosome})
-    """
-    """
-end
-
-
-function get_pareto_fronts(population::Vector{Chromosome})
-    """
-    Should sort the population into pareto fronts based on edge, deviation and connectivity
-    """
-
-
-
-end
-
-
 function uniform_crossover(p1::Chromosome, p2::Chromosome)::Tuple{Chromosome,Chromosome}
     #TODO:
     #Implement uniform crossover

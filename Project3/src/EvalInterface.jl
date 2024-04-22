@@ -3,6 +3,8 @@ module EvalInterface
 
 using ..Genetics: Chromosome, get_segment_mask
 using ..Problem: ProblemInstance
+using Images
+using FileIO
 
 
 function draw_segments(chromosome::Chromosome, instance::ProblemInstance, path::String="output.txt")
@@ -10,7 +12,7 @@ function draw_segments(chromosome::Chromosome, instance::ProblemInstance, path::
     h = instance.height
     w = instance.width
     img = [[255 for _ in 1:w] for _ in 1:h]
-
+    print("Unique segments: ", unique(vcat(mask...)), "\n")
     for i in 1:h-1
         for j in 1:w-1
             if (mask[i][j] != mask[i+1][j]) || (mask[i][j] != mask[i][j+1])
@@ -36,6 +38,12 @@ function draw_segments(chromosome::Chromosome, instance::ProblemInstance, path::
         println(io, join(line, ","))
     end #for
     close(io)
+
+    
+    matrix_data = hcat(img...)
+    img = Gray.(Float64.(matrix_data) / 255)
+    save(pre_path * path * ".png", img)
+
 end #function
 
 

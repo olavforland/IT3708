@@ -31,6 +31,7 @@ def readFilesFromFolder(directory):
 
 
 def comparePics(studentPic, optimalSegmentPic):
+	optimalSegmentPic = optimalSegmentPic.T
     # for each pixel in studentPic, compare to corresponding pixel in optimalSegmentPic
 	global colorValueSlackRange
 	global checkEightSurroundingPixels

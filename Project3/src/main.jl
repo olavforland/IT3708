@@ -32,10 +32,14 @@ function main()
     for i in 1:10
         println(population[i].edge, " ", population[i].connectivity, " ", population[i].deviation)
     end #for
-    draw_segments(population[1], probleminstance)
-    
+    n_offspring = length(population) * 7
     # args: population, p_cross, p_mut, n_generations, n_offspring
-    multi_obj_EA(population, 0.2, 100, 10)
+    population = multi_obj_EA(population, 0.2, 20, n_offspring, probleminstance)
+
+
+    sorted_pop = sort(population, by=x->(x.rank, -x.crowding_distance))
+    draw_segments(sorted_pop[1], probleminstance)
+
 
 
 end #main

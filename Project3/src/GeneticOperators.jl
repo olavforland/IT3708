@@ -40,11 +40,24 @@ function mutate!(chromosome::Chromosome, mutation_rate::Float64)::Chromosome
     returns: mutated chromosome
     """
     if rand() > mutation_rate
-        return
+        return chromosome
     end
     i = rand(1:length(chromosome.genotype))
     j = rand(1:length(chromosome.genotype[1]))
     direction = rand(['u', 'd', 'l', 'r', 'n'])
+    if i == 1 && direction == 'u'
+        direction = 'n'
+    end
+    if i == length(chromosome.genotype) && direction == 'd'
+        direction = 'n'
+    end
+    if j == 1 && direction == 'l'
+        direction = 'n'
+    end
+    if j == length(chromosome.genotype[1]) && direction == 'r'
+        direction = 'n'
+    end
+
     old = chromosome.genotype[i][j]
     new = direction
     chromosome.genotype[i][j] = direction
@@ -66,6 +79,7 @@ function update_graph_dict!(chromosome::Chromosome, changed_idx::Tuple{Int,Int},
         return
     end #if
 
+    # Add node to childs set of incoming edges
     if (old == 'n' && new != "n")
         dir = char_to_dir[new]
         new_pointed_to = (changed_idx[1] + dir[1], changed_idx[2] + dir[2])
@@ -97,7 +111,6 @@ function update_graph_dict!(chromosome::Chromosome, changed_idx::Tuple{Int,Int},
         push!(chromosome.graph[new_pointed_to], changed_idx)
         old_pointed_to = (changed_idx[1] + old_dir[1], changed_idx[2] + old_dir[2])
 
-        print(chromosome.graph[old_pointed_to])
         delete!(chromosome.graph[old_pointed_to], changed_idx)
 
         if isempty(chromosome.graph[old_pointed_to])

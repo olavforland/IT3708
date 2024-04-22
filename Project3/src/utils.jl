@@ -130,19 +130,19 @@ function mst_to_genotype(mst::Dict{Tuple{Int,Int},Set{Tuple{Int,Int}}}, dims::Tu
     for (r, neighbors) in mst
         for v in neighbors
             if r[1] == v[1] + 1
-                genotype[v[1]][v[2]] = 'u'
-            elseif r[1] == v[1] - 1
                 genotype[v[1]][v[2]] = 'd'
+            elseif r[1] == v[1] - 1
+                genotype[v[1]][v[2]] = 'u'
             elseif r[2] == v[2] + 1
-                genotype[v[1]][v[2]] = 'l'
-            elseif r[2] == v[2] - 1
                 genotype[v[1]][v[2]] = 'r'
+            elseif r[2] == v[2] - 1
+                genotype[v[1]][v[2]] = 'l'
             end #if
         end #for
     end #for
 
     #flatten genotype
-    return return genotype
+    return genotype
 
 end #mst_to_genotype
 

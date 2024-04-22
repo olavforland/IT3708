@@ -6,7 +6,7 @@ using ..Genetics: Chromosome
 using ..NSGA2: fast_non_dominated_sort!, crowding_distance_assignment!, crowded_comparison_operator
 
 
-function binary_tournament_parent_selection(population::Vector{Chromosome}, n_parents::Int=2)::Chromosome
+function binary_tournament_parent_selection(population::Vector{Chromosome}, n_parents::Int=2)
     """
     Function that selects a parent using binary tournament selection
     """
@@ -37,8 +37,10 @@ function elitism_survivor_selection(parents::Vector{Chromosome}, offspring::Vect
     n = length(parents)
 
     # Combine parents and offspring
-    combined = copy(parents)
-    append!(combined, offspring)
+    # combined = copy(parents)
+    # append!(combined, offspring)
+
+    combined = copy(offspring)
 
     pareto_fronts = fast_non_dominated_sort!(combined)
     next_population = Vector{Chromosome}()
@@ -53,7 +55,7 @@ function elitism_survivor_selection(parents::Vector{Chromosome}, offspring::Vect
         end
     end
 
-    if length(next_population) < n
+    if length(next_population) < n && i <= length(pareto_fronts)
         sort!(pareto_fronts[i], by=x->(x.rank, -x.crowding_distance))
         append!(next_population, pareto_fronts[i][1:n-length(next_population)])
     end

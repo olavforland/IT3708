@@ -51,10 +51,11 @@ function compute_edge_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}}, in
     h = instance.height
     w = instance.width
 
+    chromosome.edge = 0
 
-    for r in 1:length(h)
-        for c in 1:length(w)
-            valid_index = (i, j) -> 1 <= i <= length(h) && 1 <= j <= length(w)
+    for r in 1:h
+        for c in 1:w
+            valid_index = (i, j) -> (1 <= i <= h) && (1 <= j <= w)
             for (di, dj) in [(0, 1), (1, 0), (0, -1), (-1, 0)]
                 if valid_index(r + di, c + dj)
                     if mask[r][c] != mask[r+di][c+dj]
@@ -70,6 +71,9 @@ function compute_connectivity_obj!(chromosome::Chromosome, mask::Vector{Vector{I
     #TODO: 
     #Function for computing connectivity objective
     #S.T minimization
+
+    chromosome.connectivity = 0
+
     for (r, neighbors) in instance.knn
         for (idx, n) in enumerate(neighbors)
             if mask[r[1]][r[2]] != mask[n[1]][n[2]]
@@ -77,6 +81,10 @@ function compute_connectivity_obj!(chromosome::Chromosome, mask::Vector{Vector{I
             end #if
         end #for
     end #for
+
+    if chromosome.connectivity == 0
+        chromosome.connectivity = Inf
+    end
 end
 
 function compute_deviation_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}}, instance::ProblemInstance)
@@ -91,6 +99,8 @@ function compute_deviation_obj!(chromosome::Chromosome, mask::Vector{Vector{Int}
 
     #mu_k = dict of segment means 0.21932524803251266
     mu_k, segments = get_mu_k(instance.pixels, mask)
+
+    chromosome.deviation = 0
 
     for i in 1:num_segments
         for pixel in segments[i]
@@ -153,6 +163,12 @@ function get_segment_mask(chromosome::Chromosome, instance::ProblemInstance)::Ve
             mask[r][c] = k
         end
     end
+
+    # println("Unique segments: ", unique(vcat(mask...)))
+
+    
+    
+
     return mask
 end #get_segment_mask
 
